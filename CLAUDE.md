@@ -36,7 +36,7 @@ openspec/
     evidence/                          seal.json · receipt.json · salidas de gates
   changes/archive/                     changes cerrados
 gates/                                 los contratos, ejecutables
-.agents/                               subagentes de fase
+.claude/agents/                        subagentes de fase (sdd-mle orquesta)
 .claude/skills/                        el flujo SDD-MLOps
 .claude/hooks/                         lo que el entorno impone, fuera del control del agente
 ```
@@ -99,8 +99,32 @@ gobernado se revisa leyéndolo. En ML **hay que medirlo**, y el comprobante exis
 versión" no la define el commit. `sdd-archive` absorbe la sincronización: las main specs no se
 tocan sin comprobante, así que separar los dos pasos solo abriría una puerta sin guardia.
 
-Los subagentes de `.agents/` cubren cada fase. Regla de separación: **el subagente que implementa
-no es el que aprueba.** `apply` y `verify` nunca comparten contexto.
+## Subagentes
+
+Viven en `.claude/agents/`, que es donde el harness de Claude Code los descubre solo. El
+orquestador es **`sdd-mle`**: enruta cada change por el ciclo y no implementa nada.
+
+| Agente | Fase | Puede escribir |
+|---|---|---|
+| `sdd-mle` | orquesta y enruta | nada |
+| `sdd-explore` | explorar | `changes/<id>/evidence/` |
+| `sdd-spec` | especificar | `changes/<id>/proposal.md` y delta specs |
+| `sdd-design` | diseñar | `changes/<id>/design.md` |
+| `sdd-tasks` | planificar | `changes/<id>/tasks.md` |
+| `sdd-apply` | implementar | código, `gates/`, modelos |
+| `sdd-verify` | verificar | `changes/<id>/evidence/` |
+| `sdd-archive` | archivar | `specs/` (única excepción, y solo con comprobante) |
+
+Ningún agente salvo `sdd-archive` escribe en `openspec/specs/`, y un hook lo impone fuera del
+control del modelo.
+
+**Regla de separación: el subagente que implementa no es el que aprueba.** `sdd-apply` y
+`sdd-verify` nunca comparten contexto — verificar en un contexto distinto del que produjo el
+candidato es lo que impide que el mismo razonamiento que generó un resultado lo declare
+aceptable.
+
+Asignación de modelo por fase: razonamiento costoso en `sdd-design` y `sdd-verify`, económico en
+`sdd-tasks` y `sdd-apply`.
 
 ## Convenciones de código
 
