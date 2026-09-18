@@ -17,8 +17,8 @@ de pares. Por eso aquí la especificación se extiende a los tres, bajo una regl
 
 - **Ciclo macro — ciclo de vida ML**: Negocio → Datos → Preparación → Modelado → Evaluación →
   Despliegue → **Operación y monitoreo**. Iterativo, no lineal, y no termina.
-- **Ciclo micro — SDD**: explorar → proponer → especificar → diseñar → planificar →
-  implementar → verificar → archivar.
+- **Ciclo micro — SDD (OpenSpec)**: explorar → proponer (`proposal`, `specs`, `design`, `tasks`) →
+  implementar (sellar el candidato) → verificar (gates) → archivar.
 
 **SDD no es una fase del ciclo de vida.** Cada fase macro contiene N *changes* y cada uno recorre
 el ciclo SDD completo. No todo change despliega: un análisis archiva un hallazgo; un experimento
@@ -36,14 +36,20 @@ openspec/
     evidence/                          seal.json · receipt.json · salidas de gates
   changes/archive/                     changes cerrados
 code/<fase>/                           scripts .py, una subcarpeta por fase
-data/{bronze,silver,gold}/             capas de datos
-results/<fase>/                        salidas por fase: .md, .png, tablas
-gates/                                 los contratos, ejecutables
+data/{bronze,silver,gold}/             capas de datos (silver = feature store, gold = inferencia)
+results/<fase>/                        salidas por fase: .md y tablas; figuras en results/<fase>/imgs/
+gates/                                 los contratos, ejecutables, con sus tests
 design_system/                         avianca_brand — paquete de marca (pip -e)
-.claude/agents/                        mle-sdd-orquestador + subagentes de fase
-.claude/skills/                        el flujo SDD-MLOps
+.claude/commands/opsx/                 /opsx:explore · propose · apply · verify · sync · archive
+.claude/skills/openspec-*/             las skills de OpenSpec que respaldan esos comandos
+.claude/agents/                        mle-sdd-orquestador + un subagente opsx-* por paso
 .claude/hooks/                         lo que el entorno impone, fuera del control del agente
+mlflow.db · mlartifacts/               seguimiento y artefactos locales de MLflow (no se versionan)
 ```
+
+Hooks activos (`.claude/settings.json`): `spec_pack_guard.py` bloquea la escritura directa en
+`openspec/specs/`, y `sdd_phase_guard.py` comprueba las precondiciones de cada paso al despachar un subagente
+`opsx-*` (ver «Subagentes»).
 
 ### Los ocho aspectos
 
@@ -52,6 +58,11 @@ comparte prefijo.
 
 `problem` · `data` · `features` · `training` · `evaluation` · `serving` · `monitoring` ·
 `governance`
+
+El tier de `openspec/config.yaml` decide cuáles aplican. `conversion-sesion` es **Tier 2**
+(`problem`, `data`, `features`, `evaluation`, `serving`, `monitoring`): `training` y `governance` no se
+especifican, y las exigencias de entrenamiento (MLflow, semilla, sellado) viven en el diseño de cada
+change y en los gates de evaluación.
 
 ### Por qué markdown con un bloque `yaml contract`
 
@@ -63,7 +74,9 @@ invariante. El escenario lo lee una persona; el bloque lo ejecuta un gate.
 ## Reglas del repositorio
 
 1. **Ninguna feature edita `openspec/specs/` directamente.** Escribe delta specs en el change; la
-   fusión ocurre al sincronizar o archivar, y solo con comprobante. Un hook lo impone.
+   fusión ocurre al sincronizar o archivar, y solo con comprobante. El hook `spec_pack_guard.py`
+   bloquea la escritura directa con las herramientas de edición. **`openspec archive` corre por shell
+   y no verifica el comprobante**: compruébalo tú antes de archivar un change que promueve un modelo.
 2. **Los gates se derivan del aspecto de las capabilities que toca el delta**, no de la fase del
    ciclo de vida:
 
@@ -77,68 +90,73 @@ invariante. El escenario lo lee una persona; el bloque lo ejecuta un gate.
    | `monitoring` | `alert-backtest`, `false-positive-budget` |
    | `problem`, `governance` | `human-review` |
 
-3. **Congelar antes de leer.** El candidato se sella y solo entonces se evalúa, de modo que la
-   evidencia pertenece a la versión exacta que se promueve.
+   Implementados en `gates/`: `data-contract`, `leakage-check`, `train-serve-parity`, `slice-eval`,
+   `behavioral-tests`, `incumbent-rerun`, `contract-compat`, `latency-p99`, `rollback-drill`,
+   `alert-backtest`, `false-positive-budget`. Sin ejecutable: `freshness` (`non_binding`, el dataset no
+   tiene fecha), `reproducibility` y `compute-budget` (aspecto `training`, fuera del Tier 2) y
+   `human-review`, que es evidencia manual (`evidence/human-review.json`) de una persona.
+
+3. **Congelar antes de leer.** El candidato se sella (`gates/seal.py`) y solo entonces se evalúa, de modo
+   que la evidencia pertenece a la versión exacta que se promueve. El sello no se sobrescribe. Si algo
+   del código de entrenamiento cambia después de sellar, hay que volver a entrenar y re-sellar **antes**
+   de leer ninguna métrica de test.
 4. **Proporcionalidad.** Un change de alcance reducido recorre la vía abreviada. El tier fija el
    corte. Imponer el ciclo completo a todo el trabajo es el modo de fallo característico de estos
    marcos.
 5. **El comprobante es el objeto de promoción**, no un permiso. Liga cinco identidades:
-   `spec_pack + dataset + código + entorno + modelo`.
+   `spec_pack + dataset + código + entorno + modelo` (más el `run_id`). `gates/receipt.py` lo emite y
+   `code/06-deploy/promote.py` lo exige para asignar `champion`.
+6. **Los gates recalculan, no leen resultados ajenos.** Cargan el modelo o el dataset y calculan; un gate
+   que confía en un archivo que él no produjo no puede fallar. Leen su criterio del bloque `yaml contract`
+   del change (`--change <id>`) o, si ya se archivó, de las main specs (`_contracts.load_any`). Cada
+   gate tiene un test con un caso en que falla.
 
 ## Flujo de trabajo
 
-| Fase | Skill | Equivalente OpenSpec |
-|---|---|---|
-| Inicializar el proyecto y el Spec Pack de un modelo | `sdd-init` | — (capa ML) |
-| Investigar datos, fuentes y viabilidad | `sdd-explore` | `openspec-explore` |
-| Redactar la propuesta del change | `sdd-propose` | `openspec-propose` |
-| Traducirla a delta specs ejecutables | `sdd-spec` | `openspec-propose` (artefacto `specs`) |
-| Decidir la arquitectura | `sdd-design` | — (artefacto `design`) |
-| Descomponer en tareas | `sdd-tasks` | — (artefacto `tasks`) |
-| Implementar y sellar el candidato | `sdd-apply` | `openspec-apply-change` |
-| Correr los gates y emitir el comprobante | `sdd-verify` | — (capa ML) |
-| Fusionar deltas y cerrar el change | `sdd-archive` | `openspec-sync-specs` + `openspec-archive-change` |
+Cada unidad de trabajo es un **change de OpenSpec**. Los comandos (`.claude/commands/opsx/`) y sus skills
+(`.claude/skills/openspec-*`) son los de OpenSpec; la capa de ML se añade en el contenido del change:
 
-`sdd-verify` no tiene equivalente porque en software se va de `apply` a `archive`: el artefacto
-gobernado se revisa leyéndolo. En ML **hay que medirlo**, y el comprobante existe porque "la misma
-versión" no la define el commit. `sdd-archive` absorbe la sincronización: las main specs no se
-tocan sin comprobante, así que separar los dos pasos solo abriría una puerta sin guardia.
+| Paso | Comando | Qué hacer en este marco |
+|---|---|---|
+| Pensar antes de comprometer | `/opsx:explore` | Investigar datos, fuentes y viabilidad; un hallazgo se archiva como evidencia, no como notebook |
+| Proponer | `/opsx:propose` | Genera `proposal`, delta `specs` (con bloques `yaml contract`), `design` y `tasks`. La propuesta declara objetivo de negocio y de ML por separado, no-objetivos y la alternativa descartada |
+| Implementar | `/opsx:apply` | Ejecuta las tareas: código y sellado del candidato **antes** de evaluar |
+| Verificar | `/opsx:verify` | Coherencia del change (completitud, corrección, coherencia) **y** los gates que activa el alcance, con su evidencia en `evidence/`; si el change promueve un modelo, el comprobante |
+| Fusionar sin archivar | `/opsx:sync` | Aplica los deltas a las main specs |
+| Cerrar | `/opsx:archive` | Fusiona los deltas y mueve el change a `archive/`; si el change promueve un modelo, comprobar el comprobante antes (regla 1) |
+
+Cada fase del ciclo de vida contiene N changes; un change puede cubrir varias fases contiguas si es
+pequeño (el primero cubrió 01–03). El tier fija cuánto ciclo se recorre.
 
 ## Subagentes
 
-Viven en `.claude/agents/`, que es donde el harness de Claude Code los descubre solo. El
-orquestador es **`mle-sdd-orquestador`**: enruta cada change por el ciclo y no implementa nada.
+Viven en `.claude/agents/`, donde el harness los descubre solo. Cada uno envuelve una skill de OpenSpec y le
+añade la capa de ML; el orquestador enruta y no implementa nada.
 
-| Agente | Fase | Puede escribir |
+| Agente | Skill de OpenSpec | Puede escribir |
 |---|---|---|
-| `mle-sdd-orquestador` | orquesta y enruta | nada |
-| `sdd-explore` | explorar | `changes/<id>/evidence/` |
-| `sdd-propose` | proponer | `changes/<id>/proposal.md` |
-| `sdd-spec` | especificar | delta specs del change |
-| `sdd-design` | diseñar | `changes/<id>/design.md` |
-| `sdd-tasks` | planificar | `changes/<id>/tasks.md` |
-| `sdd-apply` | implementar | código, `gates/`, modelos |
-| `sdd-verify` | verificar | `changes/<id>/evidence/` |
-| `sdd-archive` | archivar | `specs/` (única excepción, y solo con comprobante) |
+| `mle-sdd-orquestador` | — | nada |
+| `opsx-explore` | `openspec-explore` | hallazgos (sin contrato ni código de producción) |
+| `opsx-propose` | `openspec-propose` | los artefactos del change: proposal, delta specs, design, tasks |
+| `opsx-apply` | `openspec-apply-change` | código, `gates/`, `results/`, modelos |
+| `opsx-verify` | `openspec-verify-change` | `evidence/` (lo escriben los gates) |
+| `opsx-archive` | `openspec-archive-change` + `openspec-sync-specs` | `openspec/specs/` (única excepción) |
 
-Ningún agente salvo `sdd-archive` escribe en `openspec/specs/`, y un hook lo impone fuera del
-control del modelo.
+`sdd_phase_guard.py` bloquea el despacho de un paso si falta su precondición: `opsx-apply` y `opsx-verify`
+exigen `tasks.md`; `opsx-verify` exige `evidence/seal.json` si el delta toca `evaluation`; `opsx-archive` exige
+`evidence/receipt.json` si el delta toca `serving`. Falla en abierto ante la duda.
 
-**Regla de separación: el subagente que implementa no es el que aprueba.** `sdd-apply` y
-`sdd-verify` nunca comparten contexto — verificar en un contexto distinto del que produjo el
-candidato es lo que impide que el mismo razonamiento que generó un resultado lo declare
-aceptable.
-
-Asignación de modelo por fase: razonamiento costoso en `sdd-design` y `sdd-verify`, económico en
-`sdd-tasks` y `sdd-apply`.
+**El que implementa no aprueba.** `opsx-apply` y `opsx-verify` nunca comparten contexto. La aprobación no la da el razonamiento que produjo el resultado: la dan
+los **gates** (que recalculan desde los artefactos) y, para `problem` y `governance`, **una persona**
+(`human-review`). Un gate que no puede fallar es un hallazgo, no un gate.
 
 ## Políticas del repositorio
 
 ### Idioma de los documentos de OpenSpec
 
 **Todo lo que vive bajo `openspec/` se escribe en español**: `proposal.md`, `design.md`,
-`tasks.md`, delta specs y main specs. Esta decisión prevalece sobre el «inglés por defecto» que
-mencionan las skills `sdd-*`.
+`tasks.md`, delta specs y main specs. Esta decisión prevalece sobre cualquier default en inglés de
+las plantillas o skills.
 
 - Se mantienen en su forma original las palabras clave que el CLI de OpenSpec parsea:
   `## ADDED/MODIFIED/REMOVED Requirements`, `### Requirement:`, `#### Scenario:`, `SHALL`,
@@ -156,7 +174,7 @@ dos personas ejecutando el mismo `.ipynb` obtienen resultados distintos sin que 
 Eso rompe de raíz el sellado del candidato: no se puede congelar algo cuyo resultado depende del
 orden en que alguien pulsó las celdas.
 
-La exploración vive en un change y su conclusión se archiva como hallazgo (`sdd-explore`), no en
+La exploración vive en un change y su conclusión se archiva como hallazgo (`/opsx:explore`), no en
 un notebook suelto.
 
 ### Carpetas
@@ -245,6 +263,14 @@ with mlflow.start_run(run_name=f"{modelo}/{change_id}"):
   `<modelo>-evaluation`.
 - El `run_id` de MLflow entra en el comprobante junto a los cinco hashes. Es el puente entre la
   evidencia del marco y el registro del experimento.
+- **El modelo registrado es un `Pipeline` completo** (preprocesamiento ya ajustado + clasificador): la
+  entrada es la sesión cruda, no features transformadas. Se sirve con `mlflow.pyfunc` para que la
+  `signature` se aplique, y con `pyfunc_predict_fn="predict_proba"`.
+- **Seguimiento local en SQLite** (`sqlite:///mlflow.db`, artefactos en `mlartifacts/`): MLflow 3.x ya no
+  admite el file store `mlruns/`. Ninguno de los dos se versiona. MLflow serializa sklearn con `skops` y
+  exige declarar los tipos propios (`skops_trusted_types`).
+- El **Model Registry** guarda `conversion-sesion` con versiones y alias; las etiquetas de cada versión
+  llevan `run_id`, `role`, `k_fraction` y `decision_threshold`.
 
 ### Convenciones de código
 
@@ -256,7 +282,13 @@ with mlflow.start_run(run_name=f"{modelo}/{change_id}"):
   no es reproducible.
 - Los gates viven en `gates/` y son ejecutables independientes: entran por CLI, salen con código 0
   (pasa) o distinto de 0 (bloquea) y un JSON en stdout.
-- Semilla y entorno fijados según la capability `training`.
+- Semilla fija (`preprocessing.SEED = 42`) y entorno registrado en el sello: sin `training` en el Tier 2, el
+  determinismo lo comprueba `incumbent-rerun` (reentrenar la línea base reproduce su log-loss).
 - **Toda figura usa el sistema de marca**: `pip install -e design_system` y
   `avianca_brand.apply_avianca_style()` al inicio del script. Para comparar candidato contra línea
   base por segmento está `slice_chart`, que es la gráfica que el marco exige.
+- **Figuras con varios paneles: `create_dashboard(...)`, nunca `plt.subplots` + `fig.suptitle`.**
+  `suptitle` no reserva espacio y pisa los títulos de los paneles.
+- **Un HTML que usa JavaScript no se ve desde `file://` en el panel del navegador**: sírvelo con
+  `python -m http.server` para revisarlo. El dashboard de monitoreo lee Gold en su paso de construcción
+  (`build_dashboard.py`), no en el navegador.
