@@ -316,6 +316,9 @@ Completo: las siete fases de la demo, 6 capabilities, 11 gates de dominio ejecut
   tests, pero los changes de esta demo se trabajaron con los comandos `opsx` directamente.
 
 ---
+Estado: Cerrado
+
+---
 
 ## Licencia
 
