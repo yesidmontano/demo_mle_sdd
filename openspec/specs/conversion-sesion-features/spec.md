@@ -3,18 +3,19 @@
 ## Purpose
 TBD - created by archiving change conversion-sesion-data-foundation. Update Purpose after archive.
 ## Requirements
-### Requirement: Gold solo contiene features conocidas al predecir
+### Requirement: El feature engineering ocurre después del split y se ajusta solo con train
 
-La capa `gold` SHALL contener el objetivo `booking_complete` y solo features conocidas mientras la sesión sigue abierta. Las banderas `wants_*` SHALL admitirse únicamente si la exploración muestra que se seleccionan durante la sesión y no se rellenan al completarla.
+El pipeline de preprocesamiento SHALL ajustarse únicamente con `train.parquet` y SHALL aplicarse a `test.parquet` sin reajustarse. Solo conocen features disponibles mientras la sesión sigue abierta; las banderas `wants_*` se conservan según la exploración de la fase 02.
 
-#### Scenario: Se verifica la fuga de las banderas
+#### Scenario: Test no influye en el pipeline
 
-- **WHEN** la exploración compara `wants_*` entre sesiones convertidas y no convertidas
-- **THEN** las banderas se conservan si las sesiones no convertidas muestran tasas distintas de cero, y se descartan en caso contrario
+- **WHEN** se ajusta el pipeline
+- **THEN** ninguna fila de test participa en el ajuste, y el gate de fuga no encuentra features con AUC individual sospechoso ni columnas prohibidas
 
 ```yaml contract
 gate: leakage-check
-dataset: data/gold/sessions.parquet
+train: data/silver/train_features.parquet
+test: data/silver/test_features.parquet
 assert:
   - metric: single_feature_auc
     op: "<"
@@ -24,36 +25,28 @@ assert:
     op: "=="
     value: 0
     forbidden: [booking_complete_copy]
+  - metric: split_overlap_rows
+    op: "=="
+    value: 0
 ```
 
-### Requirement: Las features de gold son transformaciones deterministas por fila
+### Requirement: El pipeline de preprocesamiento es un artefacto reproducible
 
-Las features derivadas en gold SHALL depender solo de la misma fila, de modo que ningún estadístico se aprenda del dataset completo antes del split entrenamiento/prueba. Las codificaciones aprendidas (target encoding de `route` y `booking_origin`) se difieren al modelado.
+El pipeline SHALL definirse en un módulo propio (`code/03-data_preparation/preprocessing.py`), guardarse ajustado en `data/silver/preprocessing_pipeline.joblib` y registrar en el manifiesto las columnas de entrada y de salida. Las transformaciones SHALL incluir las derivadas por fila (`purchase_lead_bucket`, `is_weekend_flight`, `extras_count`), escalado de numéricas, one-hot de categóricas de baja cardinalidad y target encoding de `route` y `booking_origin`.
 
-#### Scenario: Features derivadas
+#### Scenario: Paridad entrenamiento/serving del preprocesamiento
 
-- **WHEN** gold se construye desde silver
-- **THEN** `purchase_lead_bucket`, `is_weekend_flight` y `extras_count` están presentes y se calculan solo con columnas de la misma fila
+- **WHEN** se carga el pipeline guardado y se aplica a `test.parquet`
+- **THEN** el resultado coincide con `test_features.parquet`
 
 ```yaml contract
-gate: leakage-check
-dataset: data/gold/sessions.parquet
+gate: train-serve-parity
+pipeline: data/silver/preprocessing_pipeline.joblib
+raw: data/silver/test.parquet
+transformed: data/silver/test_features.parquet
 assert:
-  - metric: columns_present
-    value: [purchase_lead_bucket, is_weekend_flight, extras_count]
-```
-
-### Requirement: La paridad entrenamiento/serving aún no es verificable
-
-Este change no tiene camino de serving, por lo que el requisito de paridad SHALL declararse en el change de `serving` que lo introduzca.
-
-#### Scenario: Paridad diferida
-
-- **WHEN** se abre un change de serving
-- **THEN** debe reutilizar el mismo código de transformación de gold y pasar `train-serve-parity`
-
-```yaml contract
-non_binding: true
-reason: todavía no existe camino de serving
+  - metric: max_abs_diff
+    op: "<="
+    value: 1.0e-9
 ```
 
