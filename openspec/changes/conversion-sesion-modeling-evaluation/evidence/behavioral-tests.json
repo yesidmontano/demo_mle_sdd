@@ -1,0 +1,24 @@
+{
+  "gate": "behavioral-tests",
+  "status": "pass",
+  "metrics": [
+    {
+      "check": "probabilities_valid",
+      "ok": true,
+      "shape": [
+        2000,
+        2
+      ]
+    },
+    {
+      "check": "unseen_category_tolerated",
+      "ok": true
+    },
+    {
+      "check": "wants_flags_directional",
+      "ok": true,
+      "mean_delta": 0.08749
+    }
+  ],
+  "detail": "0 de 3 comprobaciones fallan"
+}

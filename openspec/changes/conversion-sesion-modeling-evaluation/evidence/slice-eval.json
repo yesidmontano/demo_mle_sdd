@@ -1,0 +1,86 @@
+{
+  "gate": "slice-eval",
+  "status": "pass",
+  "metrics": [
+    {
+      "check": "model_hash_matches_seal",
+      "ok": true
+    },
+    {
+      "check": "mlflow_signature_present",
+      "ok": true
+    },
+    {
+      "check": "sealed_before_test_metrics",
+      "ok": true,
+      "detail": "1 runs de evaluación"
+    },
+    {
+      "check": "global pr_auc >= baseline+0",
+      "candidate": 0.37076,
+      "reference": 0.34826,
+      "ok": true
+    },
+    {
+      "check": "global captured_conversions_at_k >= baseline+0",
+      "candidate": 0.49865,
+      "reference": 0.47835,
+      "ok": true
+    },
+    {
+      "check": "slice sales_channel=Internet pr_auc >= baseline-0.02",
+      "candidate": 0.37705,
+      "reference": 0.33405,
+      "ok": true
+    },
+    {
+      "check": "slice sales_channel=Mobile pr_auc >= baseline-0.02",
+      "candidate": 0.29886,
+      "reference": 0.26006,
+      "ok": true
+    },
+    {
+      "check": "slice trip_type=RoundTrip pr_auc >= baseline-0.02",
+      "candidate": 0.37169,
+      "reference": 0.32891,
+      "ok": true
+    },
+    {
+      "check": "slice purchase_lead_bucket=0-7 pr_auc >= baseline-0.02",
+      "candidate": 0.36591,
+      "reference": 0.35569,
+      "ok": true
+    },
+    {
+      "check": "slice purchase_lead_bucket=31-90 pr_auc >= baseline-0.02",
+      "candidate": 0.35821,
+      "reference": 0.3063,
+      "ok": true
+    },
+    {
+      "check": "slice purchase_lead_bucket=8-30 pr_auc >= baseline-0.02",
+      "candidate": 0.3841,
+      "reference": 0.33822,
+      "ok": true
+    },
+    {
+      "check": "slice purchase_lead_bucket=91-180 pr_auc >= baseline-0.02",
+      "candidate": 0.38439,
+      "reference": 0.35461,
+      "ok": true
+    },
+    {
+      "check": "slice purchase_lead_bucket=>180 pr_auc >= baseline-0.02",
+      "candidate": 0.39346,
+      "reference": 0.35311,
+      "ok": true
+    },
+    {
+      "check": "global ece <= 0.05",
+      "candidate": 0.00629,
+      "reference": 0.05,
+      "ok": true
+    }
+  ],
+  "detail": "0 de 14 comprobaciones fallan"
+}

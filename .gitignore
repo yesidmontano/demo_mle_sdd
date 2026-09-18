@@ -7,6 +7,7 @@ venv/
 
 # MLflow: el tracking local no se versiona; lo que se versiona es el comprobante.
 mlruns/
+mlflow.db
 mlartifacts/
 
 # Datos: bronze es inmutable y externo; silver y gold son derivados reproducibles.

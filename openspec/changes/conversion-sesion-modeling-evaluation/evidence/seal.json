@@ -1,0 +1,24 @@
+{
+  "change": "conversion-sesion-modeling-evaluation",
+  "run_id": "245443ec8e7a4546868d036e4b914af8",
+  "baseline_run_id": "4c5dc207b456484cb1edd665e813086b",
+  "sealed_at": "2026-09-18T18:51:33.360362+00:00",
+  "git_commit": "d2a13b47f5017917d7057a99ed6527967721c4ce",
+  "git_dirty": true,
+  "identities": {
+    "spec_pack": "c409e07986032f1cce5b5f4058eaf2b73a80caab3f36c62e6666d2f0e2a0fe3f",
+    "dataset": "6eeaad815fdb02422f1150826ee05a6d0cdbff0d64a4748fe84d96c7cedff6af",
+    "code": "c28cf97bc4fe98489811428d0bd82451acdb3dd30e1e13e8d3ff8b7f3df046c8",
+    "environment": "941a1071796df60980644f2708366bb07425da22cc20ff6c6efed9e480138851",
+    "model": "66fc9d239926067c058133fcd99e167efe3361e41815829b16d962ef4f210f40",
+    "environment_detail": {
+      "python": "3.12.0",
+      "pandas": "3.0.6",
+      "numpy": "2.5.3",
+      "scikit-learn": "1.9.1",
+      "mlflow": "3.16.1",
+      "pyarrow": "25.0.1",
+      "joblib": "1.6.0"
+    }
+  }
+}

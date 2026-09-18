@@ -1,0 +1,14 @@
+{
+  "gate": "incumbent-rerun",
+  "status": "pass",
+  "metrics": [
+    {
+      "check": "log_loss_abs_diff <= 1e-06",
+      "registered": 0.363427807111765,
+      "rerun": 0.363427807111765,
+      "value": 0.0,
+      "ok": true
+    }
+  ],
+  "detail": "0 de 1 comprobaciones fallan"
+}

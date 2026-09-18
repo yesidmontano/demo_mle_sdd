@@ -183,6 +183,6 @@ def slice_chart(slices: Sequence[str], baseline: Sequence[float], candidate: Seq
     ax.legend(handles=[Patch(color=GRIS_CLARO.hex, label="Línea base"),
                        Patch(color=TEAL.hex, label="Candidato — mejora"),
                        Patch(color=ROJO.hex, label="Candidato — empeora")],
-              loc="lower right")
+              loc="upper center", bbox_to_anchor=(0.5, -0.14), ncol=3)  # fuera del área de barras: nunca las tapa
     ax.grid(axis="y", visible=False)
     return fig, style_axes(ax, title, subtitle, xlabel=metric)
