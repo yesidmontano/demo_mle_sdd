@@ -3,8 +3,8 @@
 > Demo de referencia del marco **SDD aplicado al ciclo de vida de ML**: las especificaciones y los
 > contratos gobiernan entrenamiento, validación, registro y promoción.
 >
-> Caso de uso: **modelo upsell esperado** — ingresos complementarios sobre datos públicos de
-> British Airways.
+> Caso de uso: **modelo conversión de sesión** sobre datos públicos de reservas de British
+> Airways.
 
 ---
 
@@ -51,97 +51,90 @@ python -c "import avianca_brand as ab; ab.apply_avianca_style(); print('marca ok
 
 ## El problema analítico
 
-**Modelo upsell esperado** (`upsell-esperado`) — estima la propensión de una sesión de reserva a
-contratar cada servicio adicional, para decidir **qué extra ofrecer, a quién y en qué momento**.
+**Modelo conversión de sesión** (`conversion-sesion`) — estima la probabilidad de que una sesión
+de reserva termine en compra, para decidir **sobre qué sesiones intervenir**.
 
 ### La decisión de negocio
 
-El espacio en el flujo de reserva es finito: no se pueden empujar los tres extras con la misma
-prominencia sin degradar la experiencia y sin canibalizarse entre sí. La pregunta operativa es a
-qué sesión mostrarle qué.
+El presupuesto de intervención es finito: un recordatorio, un descuento o una campaña de
+retargeting cuestan dinero y desgastan al cliente si se aplican a todo el mundo. La pregunta
+operativa es a qué sesiones vale la pena dedicarlos.
 
-La métrica de decisión son los **ingresos complementarios esperados** por sesión:
-
-```
-upsell_esperado(sesión) = Σ  P(contrata extra_i | atributos de la sesión) × precio_i
-                         i
-```
-
-El vector de precios **no está en el dataset**: es un supuesto declarado en
-`upsell-esperado-problem`. Sin él, la métrica queda en *número esperado de extras*, que sigue
-siendo ordenable y suficiente para priorizar.
+El modelo produce un ranking; **la decisión la produce un umbral**. Y ese umbral es una cláusula
+de `conversion-sesion-evaluation`, no una constante en el código: cambiarlo es un change con su
+gate, no un ajuste silencioso. Esa es la demostración más limpia de lo que el marco hace.
 
 ### El objetivo de ML
 
-Tres salidas binarias sobre los mismos 10 predictores:
+Clasificación binaria sobre `booking_complete`, con **probabilidad calibrada** como salida — no
+una etiqueta. Un ranking solo es útil si la probabilidad significa lo que dice.
 
-`wants_extra_baggage` · `wants_preferred_seat` · `wants_in_flight_meals`
+| | |
+|---|---|
+| **Objetivo de negocio** | Ingreso incremental por sesión intervenida, dentro de un presupuesto fijo |
+| **Objetivo de ML** | `P(booking_complete \| atributos de la sesión)` |
+| **Métrica de decisión** | Conversiones capturadas en el top-K del ranking |
+| **Métrica de optimización** | Log-loss o PR-AUC, no *accuracy* — el objetivo está desbalanceado |
 
-Lo que hace interesante a este objetivo para el marco: **el objetivo ya es ingreso.** Equipaje,
-asiento y comida se facturan, así que no hay que argumentar ninguna cadena desde una métrica
-proxy hasta el dinero — el eslabón más frágil de la mayoría de propuestas de ML.
+La traducción entre ambos objetivos es explícita y hay que defenderla: el modelo ordena, la
+intervención convierte una fracción de lo ordenado, y esa fracción por el ticket medio es el
+ingreso. **Ese eslabón es un supuesto**, y vive declarado en `conversion-sesion-problem`.
 
 ### Por qué estos predictores deberían funcionar
 
-No es correlación ciega; hay mecanismo detrás de cada uno, y eso es lo que hace defendible el
-modelo ante una pregunta incómoda:
+Hay mecanismo detrás de cada uno, que es lo que hace defendible el modelo ante una pregunta
+incómoda:
 
 | Predictor | Mecanismo |
 |---|---|
-| `length_of_stay`, `trip_type` | Estancias largas y viajes de ida y vuelta piden **equipaje** |
-| `flight_duration` | A más horas de vuelo, más probable la **comida a bordo** |
-| `num_passengers` | Grupos y familias quieren **sentarse juntos** |
-| `purchase_lead` | Antelación como señal de planificación y de sensibilidad al precio |
-| `sales_channel` | Móvil y web tienen fricción distinta en el flujo de upsell |
-| `booking_origin` | Norma cultural y poder adquisitivo por mercado |
-| `flight_hour`, `flight_day` | Vuelo de madrugada o en fin de semana cambia el perfil de viaje |
-
-Los diez predictores son atributos de la sesión **conocidos antes** de que el cliente elija los
-extras, así que no hay fuga temporal obvia — el problema habitual con datos de reserva.
+| `purchase_lead` | Reservar con mucha antelación señala planificación; a última hora, urgencia. Las dos convierten distinto |
+| `sales_channel` | Móvil y web tienen fricción de checkout muy distinta |
+| `num_passengers` | Reservas de grupo implican más coordinación y más abandono |
+| `length_of_stay`, `trip_type` | Distinguen viaje de ocio de viaje de trabajo, con intención distinta |
+| `booking_origin` | Mercado, poder adquisitivo y hábito de compra en línea |
+| `flight_hour`, `flight_day` | Vuelo incómodo o en fin de semana cambia el perfil de quien reserva |
+| `route`, `flight_duration` | Competencia en la ruta y peso de la decisión |
 
 ### La comprobación que decide la viabilidad
 
-Hay una pregunta que el esquema no puede responder y que condiciona todo el Spec Pack:
+Hay una pregunta que el esquema no responde y que condiciona todo el Spec Pack:
 
 > **¿Qué significa `wants_extra_baggage = 0` en una sesión que no se completó?**
 
 - **Si las banderas registran lo que el cliente seleccionó durante la sesión**, aunque luego
-  abandonara, el dato es válido y el modelo es directo.
-- **Si solo se rellenan al completar la reserva**, todas las sesiones con `booking_complete = 0`
-  llevan ceros por construcción. El modelo no aprendería propensión a extras: **aprendería a
-  predecir la conversión**, con métricas excelentes y valor nulo.
+  abandonara, son **predictores legítimos y probablemente fuertes**: quien ya eligió equipaje ha
+  mostrado intención.
+- **Si solo se rellenan al completar la reserva**, entonces valen 0 en toda sesión no convertida y
+  son **fuga pura**. Un modelo que las use alcanzaría un desempeño casi perfecto en validación y
+  sería inservible en producción, porque en el momento de decidir no se conocen.
 
-Es una fuga catastrófica y silenciosa, y se detecta con una tabla cruzada de dos líneas. Si se da
-el segundo caso, el modelo se condiciona a reservas completadas —menos muestra, sigue siendo
-válido— y la decisión de negocio se desplaza: de *qué ofrecer durante la sesión* a *qué ofrecer
-tras confirmar*.
+Es el modo de falla más clásico del oficio y el más difícil de ver cuando las métricas salen
+buenas. Se resuelve con una tabla cruzada de dos líneas.
 
-Esta afirmación vive en `upsell-esperado-data` como aserción comprobable, no en este README. El
-primer change la mide y la declara, y `data-contract` falla si el archivo no la cumple.
+Esa afirmación vive en `conversion-sesion-data` como aserción comprobable, y determina si las tres
+banderas entran o no en el conjunto de features — decisión que se cierra en `sdd-design`.
 
 ### Lo que estas variables no permiten
 
-Está en los no-objetivos del Spec Pack, y conviene decirlo antes de que lo pregunten:
+Va en los no-objetivos del Spec Pack:
 
-- **No hay importe ni precio.** El ingreso esperado sale en unidades de extras salvo que se
-  declare el vector de precios como supuesto.
+- **No hay importe ni tarifa.** El ingreso se estima con un ticket medio declarado como supuesto;
+  el modelo no distingue una conversión cara de una barata.
 - **No hay identificador de cliente.** Sin historial no hay features de comportamiento pasado, y
   tampoco se puede impedir que dos sesiones del mismo cliente caigan a lados distintos del split.
-- **No se sabe qué se ofreció ni a qué precio.** Se modela propensión *dado que se ofreció*; no
-  hay forma de estimar elasticidad ni el efecto de la oferta.
-- **No hay fecha absoluta.** `purchase_lead` es relativo, así que no hay split temporal limpio ni
-  estacionalidad observable. Eso **debilita `leakage-check`**: detecta columnas prohibidas, no
-  fugas temporales sutiles.
-- **`route` y `booking_origin` tienen cardinalidad alta.** Cientos de rutas y decenas de países
-  obligan a decidir el encoding con cuidado: un target encoding mal hecho es fuga, y eso es
-  materia de `upsell-esperado-features`.
+- **No hay intervención observada.** Se modela *quién convierte*, no *a quién convertiría la
+  intervención*. Eso es uplift, y requiere asignación de tratamiento que este dataset no tiene.
+- **No hay fecha absoluta.** `purchase_lead` es relativo, así que no hay split temporal limpio.
+  Eso **debilita `leakage-check`**: detecta columnas prohibidas, no fugas temporales sutiles.
+- **`route` y `booking_origin` tienen cardinalidad alta.** Un target encoding mal hecho es fuga, y
+  eso es materia de `conversion-sesion-features`.
 
 ### Una decisión de diseño anticipada
 
-¿Puede `wants_preferred_seat` ser predictor de `wants_extra_baggage`? Depende de si el upsell se
-muestra **todo junto** —entonces no se conoce ninguno al predecir— o **en secuencia** —entonces sí
-se conocen los anteriores—. Se resuelve en `sdd-design`, y determina la paridad train/serve: usar
-como feature algo que en producción no está disponible es el train/serve skew de manual.
+¿Entran las tres banderas `wants_*` en el conjunto de features? Depende por completo de la
+comprobación anterior, y la respuesta cambia el modelo entero. Se decide en `sdd-design` y se
+declara en `conversion-sesion-features`, con su fuente offline y online — porque una feature que
+en producción no está disponible en el momento de predecir es el train/serve skew de manual.
 
 ---
 
@@ -153,9 +146,9 @@ como feature algo que en producción no está disponible es el train/serve skew 
 Cada fila es una **sesión de reserva** de British Airways.
 
 > **Conteo de filas y balance de clases: sin verificar.** La ficha de Kaggle publica el tamaño del
-> archivo y las columnas, no el número de registros ni la proporción de positivos de cada bandera.
-> Ambos son precisamente el tipo de afirmación que debe vivir en `upsell-esperado-data` como
-> aserción comprobable, no en un README.
+> archivo y las columnas, no el número de registros ni la proporción de conversiones. Ambos son
+> precisamente el tipo de afirmación que debe vivir en `conversion-sesion-data` como aserción
+> comprobable, no en un README.
 
 | Columna | Papel | Qué es |
 |---|---|---|
@@ -167,40 +160,41 @@ Cada fila es una **sesión de reserva** de British Airways.
 | `flight_hour`, `flight_day` | predictor | Hora y día de salida |
 | `route`, `booking_origin` | predictor | Ruta y país desde el que se reserva |
 | `flight_duration` | predictor | Duración del vuelo, en horas |
-| `wants_extra_baggage` | **objetivo** | Equipaje adicional |
-| `wants_preferred_seat` | **objetivo** | Selección de asiento |
-| `wants_in_flight_meals` | **objetivo** | Comida a bordo |
-| `booking_complete` | condicionante | La reserva se completó — ver la comprobación de viabilidad |
+| `wants_extra_baggage` | **por decidir** | Equipaje adicional — ver la comprobación de viabilidad |
+| `wants_preferred_seat` | **por decidir** | Selección de asiento — ídem |
+| `wants_in_flight_meals` | **por decidir** | Comida a bordo — ídem |
+| `booking_complete` | **objetivo** | La reserva se completó |
 
 ### Por qué este dataset para una demo de gobierno
 
-Tres propiedades, y ninguna es el tamaño:
-
-1. **El objetivo es dinero.** Las tres banderas son ingresos complementarios facturables, así que
-   la métrica de decisión no necesita una cadena de traducción desde un proxy.
-2. **Tres salidas son tres contratos.** `upsell-esperado-evaluation` tiene que declarar umbrales
-   por extra **y** por segmento, y responder a una pregunta que el marco resuelve bien: *¿bloquea
-   el gate si empeora uno de los tres pero mejoran los otros dos?* La respuesta va en la spec, no
-   en el criterio de quien mira las métricas.
-3. **Los segmentos salen solos y son los que importan**: canal, tipo de viaje, tramo de antelación
-   y origen de la reserva. `slice-eval` tiene con qué trabajar desde el primer día.
+1. **El desbalance obliga a calibrar.** Con una clase minoritaria marcada, la calibración y los
+   umbrales por segmento dejan de ser adorno: sin ellos el ranking no significa nada. Es
+   exactamente lo que `conversion-sesion-evaluation` exige.
+2. **El umbral de decisión es una cláusula de spec.** Cambiar dónde se corta el ranking es un
+   change con su gate, y se ve en dos minutos durante una sustentación.
+3. **Trae su propia trampa de fuga.** Las tres banderas `wants_*` pueden ser el mejor predictor o
+   veneno puro según lo que signifique un cero. Un marco que presume de gobernar datos tiene aquí
+   un caso real que resolver, no uno inventado.
+4. **Los segmentos salen solos**: canal, tipo de viaje, tramo de antelación y origen de la
+   reserva. `slice-eval` tiene con qué trabajar desde el primer día.
 
 ---
 
 ## El modelo
 
-`upsell-esperado`. Su Spec Pack son las capabilities que comparten prefijo en `openspec/specs/`:
+`conversion-sesion`. Su Spec Pack son las capabilities que comparten prefijo en
+`openspec/specs/`:
 
 | Capability | Gobierna |
 |---|---|
-| `upsell-esperado-problem` | Objetivo de negocio vs objetivo de ML, vector de precios, no-objetivos |
-| `upsell-esperado-data` | Esquema, rangos, cardinalidad, y la semántica de `wants_*` sin conversión |
-| `upsell-esperado-features` | Encoding de alta cardinalidad, point-in-time, paridad train/serve |
-| `upsell-esperado-training` | Split por grupos, semilla, hiperparámetros, reproducibilidad |
-| `upsell-esperado-evaluation` | Umbrales **por extra y por segmento**, calibración, comportamiento |
-| `upsell-esperado-serving` | Esquema E/S de tres salidas, p99, degradación, trazabilidad |
-| `upsell-esperado-monitoring` | Señales, ventanas, umbrales, severidad y acción |
-| `upsell-esperado-governance` | Tier de riesgo, aprobadores, retención, rollback |
+| `conversion-sesion-problem` | Objetivo de negocio vs objetivo de ML, ticket medio supuesto, no-objetivos |
+| `conversion-sesion-data` | Esquema, rangos, cardinalidad, y la semántica de `wants_*` sin conversión |
+| `conversion-sesion-features` | Si entran las banderas, encoding de alta cardinalidad, paridad train/serve |
+| `conversion-sesion-training` | Split por grupos, semilla, hiperparámetros, reproducibilidad |
+| `conversion-sesion-evaluation` | Umbral de decisión, calibración, umbrales **por segmento**, comportamiento |
+| `conversion-sesion-serving` | Esquema E/S, p99, degradación, trazabilidad |
+| `conversion-sesion-monitoring` | Señales, ventanas, umbrales, severidad y acción |
+| `conversion-sesion-governance` | Tier de riesgo, aprobadores, retención, rollback |
 
 ---
 
@@ -249,7 +243,7 @@ delta**, no de la fase en que se sitúa. Esa es la regla que hace mecánico al m
 - **Solo `.py`.** Nada de notebooks en el flujo gobernado: guardan estado oculto y orden de
   ejecución arbitrario, lo que rompe el sellado del candidato de raíz.
 - **MLflow obligatorio**, con `signature` inferida y flavor explícito. Sin signature, el esquema de
-  `upsell-esperado-serving` no tiene con qué contrastarse y `contract-compat` deja de poder
+  `conversion-sesion-serving` no tiene con qué contrastarse y `contract-compat` deja de poder
   fallar — deja de ser un gate.
 - **Métricas por segmento**, no solo agregadas.
 - **Toda figura usa el sistema de marca.** `avianca_brand.apply_avianca_style()` al inicio del
@@ -265,7 +259,7 @@ El detalle está en [`CLAUDE.md`](CLAUDE.md#políticas-del-repositorio).
 |---|---|
 | Marco, skills, agentes y hooks | Completo |
 | Sistema de marca `avianca_brand` | Completo y probado |
-| Spec Pack de `upsell-esperado` | **Pendiente** |
+| Spec Pack de `conversion-sesion` | **Pendiente** |
 | Gates de dominio | **Pendiente** — dependen del Spec Pack |
 | Pipeline y modelo | **Pendiente** |
 
