@@ -26,8 +26,8 @@ el riesgo por sí solos no justifican el ciclo completo: lo justifican el tier y
 del ciclo de vida. Si el change no tiene delta specs, no cambia el contrato: es un hallazgo y va
 directo a `sdd-archive`.
 
-**A quién delegas.** `sdd-explore` · `sdd-spec` · `sdd-design` · `sdd-tasks` · `sdd-apply` ·
-`sdd-verify` · `sdd-archive`. Delega siempre que la fase tenga subagente: no acumules contexto de
+**A quién delegas.** `sdd-explore` · `sdd-propose` · `sdd-spec` · `sdd-design` · `sdd-tasks` ·
+`sdd-apply` · `sdd-verify` · `sdd-archive`. Delega siempre que la fase tenga subagente: no acumules contexto de
 exploración, implementación y verificación en la misma sesión, que es precisamente lo que el
 diseño evita.
 

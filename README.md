@@ -226,7 +226,8 @@ Cada unidad de trabajo es un **change** y recorre el ciclo SDD completo, esté e
 de vida que esté:
 
 ```
-sdd-init → sdd-explore → sdd-spec → sdd-design → sdd-tasks → sdd-apply → sdd-verify → sdd-archive
+sdd-init → sdd-explore → sdd-propose → sdd-spec → sdd-design → sdd-tasks
+         → sdd-apply → sdd-verify → sdd-archive
 ```
 
 Tres reglas que el entorno impone, no la buena voluntad:

@@ -17,8 +17,8 @@ de pares. Por eso aquí la especificación se extiende a los tres, bajo una regl
 
 - **Ciclo macro — ciclo de vida ML**: Negocio → Datos → Preparación → Modelado → Evaluación →
   Despliegue → **Operación y monitoreo**. Iterativo, no lineal, y no termina.
-- **Ciclo micro — SDD**: explorar → especificar → diseñar → planificar → implementar →
-  verificar → archivar.
+- **Ciclo micro — SDD**: explorar → proponer → especificar → diseñar → planificar →
+  implementar → verificar → archivar.
 
 **SDD no es una fase del ciclo de vida.** Cada fase macro contiene N *changes* y cada uno recorre
 el ciclo SDD completo. No todo change despliega: un análisis archiva un hallazgo; un experimento
@@ -91,7 +91,8 @@ invariante. El escenario lo lee una persona; el bloque lo ejecuta un gate.
 |---|---|---|
 | Inicializar el proyecto y el Spec Pack de un modelo | `sdd-init` | — (capa ML) |
 | Investigar datos, fuentes y viabilidad | `sdd-explore` | `openspec-explore` |
-| Escribir propuesta y delta specs | `sdd-spec` | `openspec-propose` |
+| Redactar la propuesta del change | `sdd-propose` | `openspec-propose` |
+| Traducirla a delta specs ejecutables | `sdd-spec` | `openspec-propose` (artefacto `specs`) |
 | Decidir la arquitectura | `sdd-design` | — (artefacto `design`) |
 | Descomponer en tareas | `sdd-tasks` | — (artefacto `tasks`) |
 | Implementar y sellar el candidato | `sdd-apply` | `openspec-apply-change` |
@@ -112,7 +113,8 @@ orquestador es **`sdd-mle`**: enruta cada change por el ciclo y no implementa na
 |---|---|---|
 | `sdd-mle` | orquesta y enruta | nada |
 | `sdd-explore` | explorar | `changes/<id>/evidence/` |
-| `sdd-spec` | especificar | `changes/<id>/proposal.md` y delta specs |
+| `sdd-propose` | proponer | `changes/<id>/proposal.md` |
+| `sdd-spec` | especificar | delta specs del change |
 | `sdd-design` | diseñar | `changes/<id>/design.md` |
 | `sdd-tasks` | planificar | `changes/<id>/tasks.md` |
 | `sdd-apply` | implementar | código, `gates/`, modelos |

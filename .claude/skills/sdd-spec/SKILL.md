@@ -1,6 +1,6 @@
 ---
 name: sdd-spec
-description: "Escribir la propuesta y los delta specs de un change contra el Spec Pack de un modelo. Trigger: el orquestador arranca un cambio que toca el contrato."
+description: "Traducir una propuesta aprobada a delta specs ejecutables contra el Spec Pack de un modelo. Trigger: el orquestador avanza un change cuya propuesta ya está escrita."
 metadata:
   version: "1.0"
   phase: spec
@@ -17,40 +17,24 @@ Los artefactos técnicos —`proposal.md` y los delta specs— se escriben en **
 
 ## Purpose
 
-Produces `proposal.md` y los **delta specs**: qué cambia del contrato vigente y por qué. No
-escribes código ni editas las main specs.
+Produces los **delta specs**: qué cambia del contrato vigente y por qué. No escribes la
+propuesta —eso es `sdd-propose`—, ni código, ni editas las main specs.
 
 ## What to Do
 
-### Paso 1 — Crear el change y leer el orden de artefactos
+### Paso 1 — Leer la propuesta y el orden de artefactos
+
+El change ya existe: lo abrió `sdd-propose`. Empiezas leyendo su `proposal.md` — los objetivos y
+los no-objetivos que declara son lo que tus requisitos deben hacer comprobable.
 
 ```bash
-openspec new change <nombre-kebab>
 openspec status --change <nombre> --json
+openspec instructions specs --change <nombre> --json
 ```
 
-Usa `artifactPaths` y `applyRequires` del JSON. **No asumas rutas.**
+Usa `artifactPaths` del JSON. **No asumas rutas.**
 
-### Paso 2 — Decidir la vía
-
-Consulta el tier del modelo en `openspec/config.yaml` → `tiers`:
-
-- **Vía abreviada** (tier 3, o cambio pequeño y entendido): solo `proposal.md`.
-- **Ciclo completo**: proposal → specs → design → tasks.
-
-Imponer el ciclo completo a todo el trabajo es el modo de fallo característico de estos marcos.
-**El tier decide, no el tamaño ni la incertidumbre.**
-
-### Paso 3 — `proposal.md`
-
-Problema · objetivo de negocio y objetivo de ML **por separado** · no-objetivos · enfoque ·
-alternativa descartada · riesgo principal.
-
-**El gate más barato del sistema va aquí: ¿esto se resuelve sin ML?** Una heurística o una regla
-de negocio resuelven más casos de los que se admite. Si la respuesta es sí, dilo y para. Ese
-juicio ahorra proyectos enteros.
-
-### Paso 4 — Delta specs
+### Paso 2 — Delta specs
 
 En `openspec/changes/<nombre>/specs/<modelo>-<aspecto>/spec.md`:
 
@@ -80,7 +64,7 @@ assert:
 
 Secciones válidas: `## ADDED`, `## MODIFIED`, `## REMOVED`, `## RENAMED Requirements`.
 
-### Paso 5 — Declarar el alcance con precisión
+### Paso 3 — Declarar el alcance con precisión
 
 **Qué capabilities toca el delta decide qué gates se activan.** Declarar de menos salta
 verificaciones; de más, paga gates que no aplican. Revísalo dos veces.
