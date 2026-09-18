@@ -1,0 +1,24 @@
+{
+  "gate": "leakage-check",
+  "status": "pass",
+  "metrics": [
+    {
+      "check": "single_feature_auc < 0.85",
+      "value": {
+        "route": 0.7311
+      },
+      "ok": true
+    },
+    {
+      "check": "forbidden_columns_present == 0",
+      "value": [],
+      "ok": true
+    },
+    {
+      "check": "split_overlap_rows == 0",
+      "value": 0,
+      "ok": true
+    }
+  ],
+  "detail": "0 de 3 comprobaciones fallan"
+}

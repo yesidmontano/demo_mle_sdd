@@ -1,0 +1,12 @@
+{
+  "gate": "train-serve-parity",
+  "status": "pass",
+  "metrics": [
+    {
+      "check": "max_abs_diff <= 1e-09",
+      "value": 0.0,
+      "ok": true
+    }
+  ],
+  "detail": "0 de 1 comprobaciones fallan"
+}

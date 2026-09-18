@@ -165,8 +165,8 @@ un notebook suelto.
 |---|---|
 | `code/<fase>/` | Una subcarpeta por fase del ciclo de vida. Scripts ejecutables **desde la raíz del repositorio**, no desde su propia carpeta |
 | `data/bronze/` | Datos crudos tal como llegaron. **Inmutables**: ningún script escribe aquí |
-| `data/silver/` | Limpios y validados contra el contrato de `<modelo>-data`. Derivados y reproducibles |
-| `data/gold/` | Listos para entrenar o servir: agregados, features materializadas |
+| `data/silver/` | **Feature store.** Dataset limpio y validado, split `train`/`test` (limpios y transformados), pipeline de preprocesamiento ajustado (`.joblib`) y `manifest.json` con semilla, conteos y hashes. Derivados y reproducibles |
+| `data/gold/` | **Solo inferencia**: datos de inferencia y pruebas de despliegue. Ningún dataset de entrenamiento ni de evaluación |
 | `results/<fase>/` | Salidas por fase: markdown y tablas. Lo que se lee, no lo que se ejecuta |
 | `results/<fase>/imgs/` | **Toda imagen y gráfico** de la fase, sin excepción. El markdown de `results/<fase>/` los referencia con ruta relativa |
 
@@ -180,6 +180,14 @@ repositorio; `silver` y `gold` se reconstruyen.
 escrita cita la figura y la figura se lee sin necesidad del texto. Una decisión de datos o de
 modelo sin evidencia visual es una afirmación, no un hallazgo. Las figuras se guardan en
 `results/<fase>/imgs/` y usan el sistema de marca (ver «Convenciones de código»).
+
+### Preparación de datos: orden del proceso
+
+Limpieza y formateo → **split train/test** → feature engineering. El split va **siempre antes**
+del feature engineering: las transformaciones que aprenden de los datos (escalado, target
+encoding) se ajustan solo con `train` y se aplican a `test`. El pipeline se define en su propio
+módulo (`code/03-data_preparation/preprocessing.py`), separado del script que lo ejecuta, para
+que serving lo reutilice tal cual.
 
 ### MLflow: obligatorio, con signature y flavor
 

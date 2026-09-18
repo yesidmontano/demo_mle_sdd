@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Gate `leakage-check`: fuga a nivel de columna en gold, según `<modelo>-features`.
+"""Gate `leakage-check`: fuga en el conjunto de features de train, según `<modelo>-features`.
 
 Uso: python gates/leakage_check.py --change <id>   (desde la raíz del repo)
 Salida: JSON en stdout; código 0 pasa, 1 bloquea.
 
 Limitación declarada: sin fecha no detecta fuga temporal sutil, solo columnas
-demasiado predictivas por sí solas o prohibidas.
+demasiado predictivas por sí solas, columnas prohibidas o filas compartidas entre train y test.
 """
 import sys
 from pathlib import Path
@@ -37,22 +37,22 @@ def single_feature_auc(df: pd.DataFrame) -> dict[str, float]:
     return out
 
 
-def evaluate(df: pd.DataFrame, contract: dict) -> list[dict]:
+def evaluate(train: pd.DataFrame, contract: dict, test: pd.DataFrame | None = None) -> list[dict]:
     checks = []
     for a in contract.get("assert", []):
         m = a["metric"]
         if m == "single_feature_auc":
-            aucs = single_feature_auc(df)
+            aucs = single_feature_auc(train)
             worst = max(aucs, key=aucs.get)
             checks.append({"check": f"single_feature_auc {a['op']} {a['value']}",
                            "value": {worst: round(aucs[worst], 4)},
                            "ok": all(C.compare(v, a["op"], a["value"]) for v in aucs.values())})
         elif m == "forbidden_columns_present":
-            found = [c for c in a["forbidden"] if c in df.columns]
+            found = [c for c in a["forbidden"] if c in train.columns]
             checks.append({"check": "forbidden_columns_present == 0", "value": found, "ok": not found})
-        elif m == "columns_present":
-            missing = [c for c in a["value"] if c not in df.columns]
-            checks.append({"check": "columns_present", "value": missing, "ok": not missing})
+        elif m == "split_overlap_rows" and test is not None:
+            overlap = len(train.merge(test.drop_duplicates(), how="inner"))
+            checks.append({"check": "split_overlap_rows == 0", "value": overlap, "ok": overlap == 0})
     return checks
 
 
@@ -60,7 +60,7 @@ def main() -> int:
     args = C.main_args()
     checks = []
     for c in C.load(args.change, GATE):
-        checks += evaluate(pd.read_parquet(c["dataset"]), c)
+        checks += evaluate(pd.read_parquet(c["train"]), c, pd.read_parquet(c["test"]))
     return C.finish(GATE, args.change, checks)
 
 

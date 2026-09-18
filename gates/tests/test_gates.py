@@ -64,3 +64,45 @@ def test_cli_exits_nonzero_without_contracts(tmp_path):
     r = subprocess.run([sys.executable, "gates/data_contract.py", "--change", "no-existe"],
                        cwd=ROOT, capture_output=True, text=True)
     assert r.returncode == 1
+
+
+# --- feature store: split, gold vacía, paridad -------------------------------------------
+
+def test_split_metrics_detect_overlap_and_imbalance():
+    a, b = frame(), frame()
+    m = dc.split_metrics(a, b)
+    assert m["split_overlap_rows"] > 0                       # mismo frame en ambos lados
+    c = frame().assign(booking_complete=0)
+    assert dc.split_metrics(a, c)["split_positive_rate_gap"] > 0.005
+
+
+def test_store_fails_when_gold_has_data_or_files_missing(tmp_path):
+    gold = tmp_path / "gold"
+    gold.mkdir()
+    contract = {"assert": [{"metric": "gold_data_files", "op": "==", "value": 0},
+                           {"metric": "files_present", "value": [str(tmp_path / "nope.parquet")]}]}
+    checks = dc.evaluate_store(contract, gold_dir=gold)
+    assert [c["ok"] for c in checks] == [True, False]        # gold vacía pasa, archivo ausente falla
+    (gold / "sessions.parquet").write_bytes(b"x")
+    assert not dc.evaluate_store({"assert": [{"metric": "gold_data_files", "op": "==", "value": 0}]},
+                                 gold_dir=gold)[0]["ok"]
+
+
+def test_leakage_fails_on_train_test_overlap():
+    contract = {"assert": [{"metric": "split_overlap_rows", "op": "==", "value": 0}]}
+    df = frame()
+    assert not ok(lc.evaluate(df, contract, test=df))
+    assert ok(lc.evaluate(df, contract, test=frame(seed=3).assign(noise=lambda d: d.noise + 100)))
+
+
+def test_parity_fails_when_pipeline_is_refit_or_columns_change():
+    import train_serve_parity as tp
+    from sklearn.pipeline import make_pipeline
+    from sklearn.preprocessing import StandardScaler
+
+    raw = frame()[["noise"]]
+    pipe = make_pipeline(StandardScaler()).set_output(transform="pandas").fit(raw)
+    expected = pipe.transform(raw).assign(booking_complete=0)
+    contract = {"assert": [{"metric": "max_abs_diff", "op": "<=", "value": 1e-9}]}
+    assert ok(tp.evaluate(pipe, raw, expected, contract))
+    assert not ok(tp.evaluate(pipe, raw, expected + 0.5 * (expected.columns != "booking_complete"), contract))

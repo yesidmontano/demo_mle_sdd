@@ -1,0 +1,156 @@
+{
+  "gate": "data-contract",
+  "status": "pass",
+  "metrics": [
+    {
+      "check": "files_present",
+      "value": [],
+      "ok": true
+    },
+    {
+      "check": "split_positive_rate_gap <= 0.005",
+      "value": 4.0578754270492734e-05,
+      "ok": true
+    },
+    {
+      "check": "split_overlap_rows == 0",
+      "value": 0,
+      "ok": true
+    },
+    {
+      "check": "test_fraction between [0.19, 0.21]",
+      "value": 0.20001623343682148,
+      "ok": true
+    },
+    {
+      "check": "[train.parquet] null_count == 0",
+      "value": 0,
+      "ok": true
+    },
+    {
+      "check": "[train.parquet] duplicate_rows == 0",
+      "value": 0,
+      "ok": true
+    },
+    {
+      "check": "[train.parquet] booking_complete in [0, 1]",
+      "value": [],
+      "ok": true
+    },
+    {
+      "check": "[train.parquet] num_passengers in [1, 9]",
+      "value": [
+        "1",
+        "9"
+      ],
+      "ok": true
+    },
+    {
+      "check": "[train.parquet] flight_hour in [0, 23]",
+      "value": [
+        "0",
+        "23"
+      ],
+      "ok": true
+    },
+    {
+      "check": "[train.parquet] flight_duration in [4, 10]",
+      "value": [
+        4.67,
+        9.5
+      ],
+      "ok": true
+    },
+    {
+      "check": "[train.parquet] purchase_lead in [0, 900]",
+      "value": [
+        "0",
+        "704"
+      ],
+      "ok": true
+    },
+    {
+      "check": "[train.parquet] sales_channel in ['Internet', 'Mobile']",
+      "value": [],
+      "ok": true
+    },
+    {
+      "check": "[train.parquet] trip_type in ['RoundTrip', 'OneWay', 'CircleTrip']",
+      "value": [],
+      "ok": true
+    },
+    {
+      "check": "[train.parquet] flight_day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']",
+      "value": [],
+      "ok": true
+    },
+    {
+      "check": "[test.parquet] null_count == 0",
+      "value": 0,
+      "ok": true
+    },
+    {
+      "check": "[test.parquet] duplicate_rows == 0",
+      "value": 0,
+      "ok": true
+    },
+    {
+      "check": "[test.parquet] booking_complete in [0, 1]",
+      "value": [],
+      "ok": true
+    },
+    {
+      "check": "[test.parquet] num_passengers in [1, 9]",
+      "value": [
+        "1",
+        "9"
+      ],
+      "ok": true
+    },
+    {
+      "check": "[test.parquet] flight_hour in [0, 23]",
+      "value": [
+        "0",
+        "23"
+      ],
+      "ok": true
+    },
+    {
+      "check": "[test.parquet] flight_duration in [4, 10]",
+      "value": [
+        4.67,
+        9.5
+      ],
+      "ok": true
+    },
+    {
+      "check": "[test.parquet] purchase_lead in [0, 900]",
+      "value": [
+        "0",
+        "867"
+      ],
+      "ok": true
+    },
+    {
+      "check": "[test.parquet] sales_channel in ['Internet', 'Mobile']",
+      "value": [],
+      "ok": true
+    },
+    {
+      "check": "[test.parquet] trip_type in ['RoundTrip', 'OneWay', 'CircleTrip']",
+      "value": [],
+      "ok": true
+    },
+    {
+      "check": "[test.parquet] flight_day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']",
+      "value": [],
+      "ok": true
+    },
+    {
+      "check": "gold_data_files == 0",
+      "value": 0,
+      "ok": true
+    }
+  ],
+  "detail": "0 de 25 comprobaciones fallan"
+}
