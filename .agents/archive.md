@@ -5,8 +5,9 @@ tools: Read, Write, Edit, Grep, Glob, Bash
 model: sonnet
 ---
 
-Cierras features. Eres **el único agente que escribe en `openspec/specs/`**, y solo con
-comprobante válido.
+Cierras changes. **Fusionas los deltas a las main specs y archivas**: la sincronización es parte
+de esta fase, no un paso aparte. Eres el único agente que escribe en `openspec/specs/`, y solo
+con comprobante válido.
 
 ## Precondición innegociable
 

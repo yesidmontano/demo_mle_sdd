@@ -1,41 +1,70 @@
 ---
 name: sdd-apply
-description: Implementar las tareas de un change y sellar el candidato entrenado. No evalúa ni aprueba su propio resultado. Usar cuando el delta y las tareas están listos.
+description: "Implementar las tareas de un change y sellar el candidato entrenado. No evalúa su propio resultado. Trigger: el orquestador lanza la implementación con tasks.md listo."
+metadata:
+  version: "1.0"
+  phase: apply
 ---
 
-# Implementar — `openspec-apply-change` con sellado
+## Execution Role
 
-Sigue el bucle de `openspec-apply-change` sin cambios:
+Confirma tu rol antes de actuar. Eres el subagente `sdd-apply` salvo que hayas cargado este skill
+directamente. Como orquestador, delega.
+
+**No ejecutes la fase de verificación**, ni siquiera si el resultado parece obvio.
+
+## Language Domain Contract
+
+El código, los comentarios y los mensajes de commit se escriben en **inglés** por defecto.
+
+## Purpose
+
+Implementas contra los delta specs y las tareas, y **sellas el candidato** en cuanto termina el
+entrenamiento.
+
+## What to Do
+
+### Paso 1 — Cargar el contexto desde el CLI
 
 ```bash
 openspec status --change <nombre> --json
 openspec instructions apply --change <nombre> --json
 ```
 
-Lee todos los `contextFiles` que devuelve el CLI, implementa tarea a tarea y marca
-`- [ ]` → `- [x]` inmediatamente al completar cada una.
+Lee **todos** los `contextFiles` que devuelve. No asumas nombres de archivo.
 
-## Las dos reglas que este skill añade
+### Paso 2 — Implementar tarea a tarea
 
-**1. No juzgas tu propio resultado.** `apply` nunca ejecuta los gates de aceptación ni declara
-que un change está listo. Eso es `sdd-verify`, en otro contexto. La razón no es procedimental: si
-el mismo razonamiento que produjo un candidato decide si es aceptable, la verificación no informa
-nada. Si te piden "ya que estás, comprueba si pasa" — devuelve el control.
+Marca `- [ ]` → `- [x]` inmediatamente al completar cada una. Cambios mínimos y acotados a la
+tarea.
 
-**2. Sella el candidato en cuanto termine el entrenamiento**, antes de mirar una sola métrica:
+### Paso 3 — Sellar, antes de mirar ninguna métrica
 
 ```bash
 python gates/seal.py --change <nombre>
 ```
 
-Congelar antes de leer es el punto entero del mecanismo: así la evidencia pertenece a la versión
-exacta que se promueve. Si el árbol de trabajo está sucio el sellado falla, y eso es correcto —
-un candidato no reproducible no se promueve. Limpia y vuelve a sellar; no fuerces.
+Congela cinco identidades: `spec_pack`, `dataset`, `code`, `env`, `model`. En ML el commit no
+identifica la versión —el mismo código sobre otro snapshot produce otro modelo—, así que "la
+misma versión" solo queda definida por las cinco juntas.
 
-## Límite de escritura
+Si el árbol de trabajo está sucio el sellado **falla**, y eso es correcto: un candidato no
+reproducible no se promueve. Limpia y vuelve a sellar; **no fuerces**.
 
-Nunca `openspec/specs/`. Un hook lo bloquea, y si lo encuentras bloqueado no es un error de
-configuración: es el diseño funcionando. El cambio va en el delta del change.
+## Rules
 
-Si descubres que el contrato de datos está mal, **para**: es un change sobre la capability
-`<modelo>-data`, no un arreglo silencioso por el camino.
+- **No juzgas tu propio resultado.** `apply` nunca ejecuta los gates de aceptación ni declara que
+  un change está listo. Si el mismo razonamiento que produjo un candidato decide si es aceptable,
+  la verificación no informa nada. Si te piden "ya que estás, comprueba si pasa", devuelve el
+  control.
+- **Nunca escribas en `openspec/specs/`.** Un hook lo bloquea; si lo encuentras bloqueado no es
+  un error de configuración, es el diseño funcionando. El cambio va en el delta.
+- Semilla y entorno fijados según la capability `training`.
+- Si descubres que el contrato de datos está mal, **para**: es otro change sobre `<modelo>-data`,
+  no un arreglo silencioso por el camino.
+- Si la implementación revela un problema de diseño, para y propón actualizar el artefacto.
+- Aplica `rules.apply` de `openspec/config.yaml`.
+
+## Return Summary
+
+Tareas completadas, progreso `N/M`, el sellado emitido, y qué falta. Si quedó bloqueado, por qué.

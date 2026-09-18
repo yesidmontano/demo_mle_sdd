@@ -17,7 +17,8 @@ de pares. Por eso aquí la especificación se extiende a los tres, bajo una regl
 
 - **Ciclo macro — ciclo de vida ML**: Negocio → Datos → Preparación → Modelado → Evaluación →
   Despliegue → **Operación y monitoreo**. Iterativo, no lineal, y no termina.
-- **Ciclo micro — SDD**: explorar → proponer → implementar → verificar → sincronizar → archivar.
+- **Ciclo micro — SDD**: explorar → especificar → diseñar → planificar → implementar →
+  verificar → archivar.
 
 **SDD no es una fase del ciclo de vida.** Cada fase macro contiene N *changes* y cada uno recorre
 el ciclo SDD completo. No todo change despliega: un análisis archiva un hallazgo; un experimento
@@ -82,19 +83,21 @@ invariante. El escenario lo lee una persona; el bloque lo ejecuta un gate.
 
 ## Flujo de trabajo
 
-| Quiero… | Skill | Equivalente OpenSpec |
+| Fase | Skill | Equivalente OpenSpec |
 |---|---|---|
-| Investigar datos o viabilidad | `sdd-explore` | `openspec-explore` |
-| Crear o revisar las main specs de un modelo | `sdd-spec-pack` | — (capa ML) |
-| Abrir un change con sus artefactos | `sdd-propose` | `openspec-propose` |
-| Implementar las tareas y sellar | `sdd-apply` | `openspec-apply-change` |
-| Correr los gates que activa el alcance | `sdd-verify` | — (capa ML) |
-| Emitir el comprobante | `sdd-receipt` | — (capa ML) |
-| Fusionar deltas a main specs | `sdd-sync-specs` | `openspec-sync-specs` |
-| Cerrar el change | `sdd-archive` | `openspec-archive-change` |
+| Inicializar el proyecto y el Spec Pack de un modelo | `sdd-init` | — (capa ML) |
+| Investigar datos, fuentes y viabilidad | `sdd-explore` | `openspec-explore` |
+| Escribir propuesta y delta specs | `sdd-spec` | `openspec-propose` |
+| Decidir la arquitectura | `sdd-design` | — (artefacto `design`) |
+| Descomponer en tareas | `sdd-tasks` | — (artefacto `tasks`) |
+| Implementar y sellar el candidato | `sdd-apply` | `openspec-apply-change` |
+| Correr los gates y emitir el comprobante | `sdd-verify` | — (capa ML) |
+| Fusionar deltas y cerrar el change | `sdd-archive` | `openspec-sync-specs` + `openspec-archive-change` |
 
-Los tres skills sin equivalente son exactamente lo que ML añade: el artefacto gobernado no se
-revisa leyéndolo, hay que medirlo, y "la misma versión" no la define el commit.
+`sdd-verify` no tiene equivalente porque en software se va de `apply` a `archive`: el artefacto
+gobernado se revisa leyéndolo. En ML **hay que medirlo**, y el comprobante existe porque "la misma
+versión" no la define el commit. `sdd-archive` absorbe la sincronización: las main specs no se
+tocan sin comprobante, así que separar los dos pasos solo abriría una puerta sin guardia.
 
 Los subagentes de `.agents/` cubren cada fase. Regla de separación: **el subagente que implementa
 no es el que aprueba.** `apply` y `verify` nunca comparten contexto.
