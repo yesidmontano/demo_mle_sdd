@@ -1,0 +1,30 @@
+# El documento que más gobierna. Umbrales POR SEGMENTO, no solo agregados.
+model: "<nombre-del-modelo>"
+baseline:
+  kind: incumbent        # incumbent | heuristic | constant
+  ref: "<modelo vigente o regla>"
+
+global_thresholds:
+  - { metric: "<p. ej. MAE>", op: "<=", value: 0.0, relative_to_baseline: true }
+
+# Un agregado que sube puede ocultar degradación en un segmento. De ahí esta sección.
+slices:
+  - name: "<p. ej. rutas de alta demanda>"
+    filter: "<expresión sobre columnas>"
+    thresholds:
+      - { metric: "<MAE>", op: "<=", value: 0.0, relative_to_baseline: true }
+    min_support: 100
+
+behavioral_tests:
+  invariance:
+    - { description: "<un cambio que NO debe alterar la predicción>" }
+  directional:
+    - { description: "<un cambio que debe mover la predicción en un sentido conocido>" }
+  minimum_functionality:
+    - { description: "<caso trivial que el modelo debe acertar>" }
+
+calibration:
+  required: false
+  method: "<isotonic | platt>"
+
+on_failure: block

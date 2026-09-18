@@ -1,0 +1,25 @@
+model: "<nombre-del-modelo>"
+dataset:
+  ref: "<ruta o versión del dataset>"
+  hash: "<se rellena al sellar el candidato>"
+
+split:
+  strategy: temporal     # temporal | random | grouped
+  time_column: "<columna>"
+  train: "<rango>"
+  validation: "<rango>"
+  test: "<rango>"
+
+reproducibility:
+  seed: 42
+  deterministic: true
+  environment_lock: "requirements.lock"
+
+algorithm:
+  family: "<gradient_boosting | linear | ...>"
+  hyperparameters: {}
+  search: none           # none | grid | random | bayesian
+
+compute_budget:
+  max_wall_clock: "<p. ej. 30m>"
+  max_cost_usd: 0

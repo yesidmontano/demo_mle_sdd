@@ -1,0 +1,56 @@
+schema: spec-driven-mlops
+version: 1
+
+context: |
+  Demo de MLOps gobernado por especificaciones. El comportamiento del sistema lo producen tres
+  artefactos —código, datos y modelo entrenado— y la especificación se extiende a los tres.
+  Stack: Python 3.11+, scikit-learn / gradient boosting, pandas, pytest.
+  Dominio: revenue en aeronáutica.
+
+# Corte entre la vía abreviada y el ciclo completo.
+tiers:
+  1: { descripcion: "Decide sobre clientes o ingresos; regulado", spec_pack: todos, ciclo: completo, aprobador_humano: true }
+  2: { descripcion: "Producción, impacto acotado y reversible",    spec_pack: [00,10,20,40,50,60], ciclo: completo, aprobador_humano: false }
+  3: { descripcion: "Interno, exploratorio, sin consumidores",     spec_pack: [00,10,40],           ciclo: abreviado, aprobador_humano: false }
+
+# El alcance del delta decide los gates. No la fase del ciclo de vida.
+gate_routing:
+  "10-data":       [data-contract, freshness]
+  "20-features":   [train-serve-parity, leakage-check]
+  "30-training":   [reproducibility, compute-budget]
+  "40-evaluation": [slice-eval, behavioral-tests, incumbent-rerun]
+  "50-serving":    [contract-compat, latency-p99, rollback-drill]
+  "60-monitoring": [alert-backtest, false-positive-budget]
+  "00-problem":    [human-review]
+  "70-governance": [human-review]
+
+rules:
+  proposal:
+    - Declarar objetivo de negocio y objetivo de ML por separado.
+    - Declarar no-objetivos explícitos antes de entrenar.
+    - Si el problema se resuelve sin ML, decirlo y parar.
+  specs:
+    - Todo requisito se expresa como umbral, esquema, invariante o SLO verificable.
+    - La prosa que no baja a contrato se marca `non_binding: true`.
+    - Un umbral absoluto es sospechoso: preferir relativo a la línea base vigente.
+  design:
+    - Registrar la alternativa descartada y por qué.
+    - Decidir batch vs online y stateless vs stateful de forma explícita.
+  tasks:
+    - Cada tarea deja un artefacto verificable, no una afirmación.
+  apply:
+    - Nunca escribir en openspec/specs/. El cambio va en el delta.
+    - Sellar el candidato antes de evaluarlo.
+  verify:
+    - Correr únicamente los gates que el alcance del delta activa.
+    - Un gate que no puede fallar no es un gate: reportarlo como hallazgo.
+    - La evaluación por segmentos es obligatoria cuando el delta toca 40-evaluation.
+  archive:
+    - No fusionar sin comprobante válido.
+    - Una feature sin despliegue también archiva: hallazgo o resultado negativo.
+
+testing:
+  runner:
+    command: "python -m pytest -q"
+    framework: pytest
+  gates_dir: gates

@@ -1,0 +1,30 @@
+# Se redacta ANTES de disponer de los datos que vigilará. De ahí el backtest obligatorio.
+model: "<nombre-del-modelo>"
+signals:
+  operational:
+    - { name: latency_p99, window: 5m, threshold: 200, op: ">", severity: high, action: alert }
+    - { name: error_rate,  window: 5m, threshold: 0.01, op: ">", severity: high, action: revert }
+  input:
+    - { name: feature_drift, method: psi, window: 1d, threshold: 0.2, op: ">", severity: medium, action: alert }
+    - { name: null_rate,     window: 1h, threshold: 0.05, op: ">", severity: high, action: block_promotions }
+  output:
+    - { name: prediction_distribution_shift, method: ks, window: 1d, threshold: 0.1, op: ">", severity: medium, action: alert }
+  performance:
+    - { name: "<MAE en producción>", window: 7d, threshold: 0.0, op: ">", relative_to_baseline: true, severity: high, action: retrain }
+
+# Los mismos segmentos que 40-evaluation. Si divergen, se está midiendo objetos distintos.
+watched_slices: []
+
+label_latency:
+  value: "<p. ej. 14d>"
+  implication: "<qué se puede medir y con qué retraso>"
+
+calibration:
+  backtest_required: true
+  historical_incidents: "<ruta al registro de incidentes>"
+  false_positive_budget: 0.05
+
+holdout_traffic:
+  # Rompe la retroalimentación degenerada: las etiquetas naturales se contaminan solas.
+  pct: 1
+  purpose: "medir sin intervención del modelo"
