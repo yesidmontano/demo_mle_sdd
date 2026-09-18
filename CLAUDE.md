@@ -134,6 +134,19 @@ Asignación de modelo por fase: razonamiento costoso en `sdd-design` y `sdd-veri
 
 ## Políticas del repositorio
 
+### Idioma de los documentos de OpenSpec
+
+**Todo lo que vive bajo `openspec/` se escribe en español**: `proposal.md`, `design.md`,
+`tasks.md`, delta specs y main specs. Esta decisión prevalece sobre el «inglés por defecto» que
+mencionan las skills `sdd-*`.
+
+- Se mantienen en su forma original las palabras clave que el CLI de OpenSpec parsea:
+  `## ADDED/MODIFIED/REMOVED Requirements`, `### Requirement:`, `#### Scenario:`, `SHALL`,
+  `WHEN`, `THEN`, y los encabezados `## Why`, `## What Changes`, `## Capabilities`, `## Impact`
+  de la propuesta.
+- Los identificadores (nombres de capability, columnas, gates, claves del bloque
+  `yaml contract`) no se traducen.
+
 ### Formato de archivo: solo `.py`
 
 **El único formato de código admitido es `.py`.** Nada de notebooks en el flujo gobernado.
@@ -154,11 +167,19 @@ un notebook suelto.
 | `data/bronze/` | Datos crudos tal como llegaron. **Inmutables**: ningún script escribe aquí |
 | `data/silver/` | Limpios y validados contra el contrato de `<modelo>-data`. Derivados y reproducibles |
 | `data/gold/` | Listos para entrenar o servir: agregados, features materializadas |
-| `results/<fase>/` | Salidas por fase: markdown, PNG, tablas. Lo que se lee, no lo que se ejecuta |
+| `results/<fase>/` | Salidas por fase: markdown y tablas. Lo que se lee, no lo que se ejecuta |
+| `results/<fase>/imgs/` | **Toda imagen y gráfico** de la fase, sin excepción. El markdown de `results/<fase>/` los referencia con ruta relativa |
 
 Las tres capas de datos son derivaciones, no copias: **si `silver` no se puede regenerar desde
 `bronze` con el código del repositorio, la capa está rota.** Solo `bronze` se versiona fuera del
 repositorio; `silver` y `gold` se reconstruyen.
+
+### Análisis visual
+
+**Todo análisis y toda decisión se acompañan de una figura** que la respalde: la conclusión
+escrita cita la figura y la figura se lee sin necesidad del texto. Una decisión de datos o de
+modelo sin evidencia visual es una afirmación, no un hallazgo. Las figuras se guardan en
+`results/<fase>/imgs/` y usan el sistema de marca (ver «Convenciones de código»).
 
 ### MLflow: obligatorio, con signature y flavor
 

@@ -34,7 +34,7 @@ rules:
     - Declarar no-objetivos explícitos antes de entrenar.
     - Si el problema se resuelve sin ML, decirlo y parar.
   specs:
-    - Usar el formato OpenSpec: "### Requirement:" con SHALL y "#### Scenario:" con WHEN/THEN.
+    - 'Usar el formato OpenSpec: "### Requirement:" con SHALL y "#### Scenario:" con WHEN/THEN.'
     - Todo requisito lleva dentro un bloque ```yaml contract``` comprobable, o `non_binding: true`.
     - Un umbral absoluto es sospechoso: preferir relativo a la línea base vigente.
     - Si se toca evaluation, declarar umbrales por slice, no solo agregados.
