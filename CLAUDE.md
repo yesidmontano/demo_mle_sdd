@@ -40,7 +40,7 @@ data/{bronze,silver,gold}/             capas de datos
 results/<fase>/                        salidas por fase: .md, .png, tablas
 gates/                                 los contratos, ejecutables
 design_system/                         avianca_brand — paquete de marca (pip -e)
-.claude/agents/                        subagentes de fase (sdd-mle orquesta)
+.claude/agents/                        mle-sdd-orquestador + subagentes de fase
 .claude/skills/                        el flujo SDD-MLOps
 .claude/hooks/                         lo que el entorno impone, fuera del control del agente
 ```
@@ -107,11 +107,11 @@ tocan sin comprobante, así que separar los dos pasos solo abriría una puerta s
 ## Subagentes
 
 Viven en `.claude/agents/`, que es donde el harness de Claude Code los descubre solo. El
-orquestador es **`sdd-mle`**: enruta cada change por el ciclo y no implementa nada.
+orquestador es **`mle-sdd-orquestador`**: enruta cada change por el ciclo y no implementa nada.
 
 | Agente | Fase | Puede escribir |
 |---|---|---|
-| `sdd-mle` | orquesta y enruta | nada |
+| `mle-sdd-orquestador` | orquesta y enruta | nada |
 | `sdd-explore` | explorar | `changes/<id>/evidence/` |
 | `sdd-propose` | proponer | `changes/<id>/proposal.md` |
 | `sdd-spec` | especificar | delta specs del change |
