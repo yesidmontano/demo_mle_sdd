@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "avianca-brand"
+version = "0.1.0"
+description = "Sistema de diseño de Avianca para visualización de datos"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Uso interno — demo" }
+keywords = ["avianca", "brand", "design-system", "matplotlib", "mlops"]
+
+dependencies = [
+  "matplotlib>=3.7.0",
+  "numpy>=1.24.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "pandas>=2.0.0"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["avianca_brand*"]
+
+[tool.setuptools.package-data]
+avianca_brand = ["assets/*.svg", "assets/*.png"]

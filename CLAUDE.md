@@ -35,7 +35,11 @@ openspec/
     specs/<modelo>-<aspecto>/spec.md   delta specs (ADDED/MODIFIED/REMOVED/RENAMED)
     evidence/                          seal.json · receipt.json · salidas de gates
   changes/archive/                     changes cerrados
+code/<fase>/                           scripts .py, una subcarpeta por fase
+data/{bronze,silver,gold}/             capas de datos
+results/<fase>/                        salidas por fase: .md, .png, tablas
 gates/                                 los contratos, ejecutables
+design_system/                         avianca_brand — paquete de marca (pip -e)
 .claude/agents/                        subagentes de fase (sdd-mle orquesta)
 .claude/skills/                        el flujo SDD-MLOps
 .claude/hooks/                         lo que el entorno impone, fuera del control del agente
@@ -126,10 +130,77 @@ aceptable.
 Asignación de modelo por fase: razonamiento costoso en `sdd-design` y `sdd-verify`, económico en
 `sdd-tasks` y `sdd-apply`.
 
-## Convenciones de código
+## Políticas del repositorio
+
+### Formato de archivo: solo `.py`
+
+**El único formato de código admitido es `.py`.** Nada de notebooks en el flujo gobernado.
+
+La razón no es estética. Un notebook guarda estado oculto y orden de ejecución arbitrario, así que
+dos personas ejecutando el mismo `.ipynb` obtienen resultados distintos sin que nada lo señale.
+Eso rompe de raíz el sellado del candidato: no se puede congelar algo cuyo resultado depende del
+orden en que alguien pulsó las celdas.
+
+La exploración vive en un change y su conclusión se archiva como hallazgo (`sdd-explore`), no en
+un notebook suelto.
+
+### Carpetas
+
+| Carpeta | Regla |
+|---|---|
+| `code/<fase>/` | Una subcarpeta por fase del ciclo de vida. Scripts ejecutables **desde la raíz del repositorio**, no desde su propia carpeta |
+| `data/bronze/` | Datos crudos tal como llegaron. **Inmutables**: ningún script escribe aquí |
+| `data/silver/` | Limpios y validados contra el contrato de `<modelo>-data`. Derivados y reproducibles |
+| `data/gold/` | Listos para entrenar o servir: agregados, features materializadas |
+| `results/<fase>/` | Salidas por fase: markdown, PNG, tablas. Lo que se lee, no lo que se ejecuta |
+
+Las tres capas de datos son derivaciones, no copias: **si `silver` no se puede regenerar desde
+`bronze` con el código del repositorio, la capa está rota.** Solo `bronze` se versiona fuera del
+repositorio; `silver` y `gold` se reconstruyen.
+
+### MLflow: obligatorio, con signature y flavor
+
+**Todo entrenamiento y todo experimento se registra en MLflow.** Un modelo que no pasó por MLflow
+no existe para el marco, y no puede sellarse ni promoverse.
+
+Dos exigencias que no son opcionales:
+
+```python
+import mlflow
+from mlflow.models import infer_signature
+
+with mlflow.start_run(run_name=f"{modelo}/{change_id}"):
+    mlflow.log_params(params)
+    mlflow.log_metrics(metricas_globales)
+    mlflow.log_metrics(metricas_por_slice)      # el agregado solo no basta
+
+    signature = infer_signature(X_train, model.predict(X_train))
+    mlflow.sklearn.log_model(                   # el flavor que corresponda
+        sk_model=model,
+        name="model",
+        signature=signature,                    # OBLIGATORIA
+        input_example=X_train.head(5),
+    )
+```
+
+- **`signature` siempre.** Es el contrato de entrada y salida del modelo, verificable en tiempo de
+  carga. Sin ella, el esquema declarado en `<modelo>-serving` no tiene con qué contrastarse y el
+  gate `contract-compat` no puede fallar — es decir, deja de ser un gate.
+- **Flavor explícito.** `mlflow.sklearn`, `mlflow.xgboost`, `mlflow.pyfunc`… nunca un pickle
+  suelto. El flavor es lo que permite cargar el modelo sin reconstruir su entorno a mano.
+- **Métricas por slice, no solo agregadas.** Los mismos segmentos que declara
+  `<modelo>-evaluation`.
+- El `run_id` de MLflow entra en el comprobante junto a los cinco hashes. Es el puente entre la
+  evidencia del marco y el registro del experimento.
+
+### Convenciones de código
 
 - Python 3.11+. Dependencias con `uv` si está disponible, si no `pip` en un venv local.
-- Los gates viven en `gates/` y son ejecutables independientes: entran por CLI, salen con
-  código 0 (pasa) o distinto de 0 (bloquea) y un JSON en stdout.
-- Nada de notebooks en el flujo gobernado. La exploración vive en un change y su conclusión se
-  archiva como hallazgo.
+- Rutas relativas a la raíz del repositorio. Un script que solo funciona desde su propia carpeta
+  no es reproducible.
+- Los gates viven en `gates/` y son ejecutables independientes: entran por CLI, salen con código 0
+  (pasa) o distinto de 0 (bloquea) y un JSON en stdout.
+- Semilla y entorno fijados según la capability `training`.
+- **Toda figura usa el sistema de marca**: `pip install -e design_system` y
+  `avianca_brand.apply_avianca_style()` al inicio del script. Para comparar candidato contra línea
+  base por segmento está `slice_chart`, que es la gráfica que el marco exige.

@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.DS_Store
+
+# MLflow: el tracking local no se versiona; lo que se versiona es el comprobante.
+mlruns/
+mlartifacts/
+
+# Datos: bronze es inmutable y externo; silver y gold son derivados reproducibles.
+data/bronze/*
+data/silver/*
+data/gold/*
+!data/*/.gitkeep
