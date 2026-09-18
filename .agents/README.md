@@ -16,14 +16,15 @@ aceptable.
 | `orchestrator` | enruta | nada |
 | `explore` | explorar | `changes/<id>/evidence/` |
 | `propose` | proponer | `changes/<id>/proposal.md` |
-| `spec` | especificar | `changes/<id>/spec.delta.yaml` |
+| `spec` | especificar | `changes/<id>/delta specs` |
 | `design` | diseñar | `changes/<id>/design.md` |
 | `tasks` | planificar | `changes/<id>/tasks.md` |
 | `apply` | implementar | código, `gates/`, modelos |
 | `verify` | verificar | `changes/<id>/evidence/` |
+| `sync-specs` | sincronizar | `specs/` (con comprobante) |
 | `archive` | archivar | `specs/` (única excepción, y solo con comprobante) |
 
-Ningún agente salvo `archive` escribe en `openspec/specs/`, y un hook del entorno lo impone
+Ningún agente salvo `sync-specs` y `archive` escribe en `openspec/specs/`, y un hook del entorno lo impone
 fuera del control del modelo.
 
 Asignación de modelo por fase: razonamiento costoso en `design` y `verify`, económico en

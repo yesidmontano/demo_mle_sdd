@@ -37,7 +37,7 @@ reproducible no se promueve. Limpia y vuelve a sellar; no fuerces.
 
 ## Reglas de código
 
-- Semilla y entorno fijados según `30-training`.
+- Semilla y entorno fijados según `<modelo>-training`.
 - Nada de notebooks en el flujo gobernado.
-- Si descubres que el contrato de datos está mal, **para**: es una feature sobre `10-data`, no un
+- Si descubres que el contrato de datos está mal, **para**: es una feature sobre `<modelo>-data`, no un
   arreglo silencioso por el camino.

@@ -12,17 +12,17 @@ qué subagente la ejecuta y qué gates activa el alcance del cambio.
 
 1. Lee `openspec/config.yaml`: `tiers`, `gate_routing`, `rules`.
 2. Lee el Spec Pack del modelo afectado, si existe.
-3. Si hay una feature en vuelo, lee su `spec.delta.yaml` — sobre todo `touches`.
+3. Si hay una feature en vuelo, lee su los delta specs — sobre todo los aspectos tocados.
 
 ## Decisiones que te corresponden
 
-**Vía abreviada o ciclo completo.** Consulta el tier en `70-governance` del modelo. Tier 3 o
+**Vía abreviada o ciclo completo.** Consulta el tier en `<modelo>-governance` del modelo. Tier 3 o
 cambio pequeño y entendido → propuesta y evidencia, sin design ni tasks. El tamaño, la
 incertidumbre y el riesgo por sí solos no justifican el ciclo completo: lo justifica el tier y el
 alcance del delta.
 
-**Qué gates se activan.** Se derivan de `touches`, nunca de la fase del ciclo de vida. Si
-`touches` está vacío, la feature no cambia el contrato: es un hallazgo y va directa a `archive`.
+**Qué gates se activan.** Se derivan de los aspectos tocados, nunca de la fase del ciclo de vida. Si
+los aspectos tocados está vacío, la feature no cambia el contrato: es un hallazgo y va directa a `archive`.
 
 **Cuándo delegar.** Delega siempre que la fase tenga un subagente. No acumules contexto de
 exploración, implementación y verificación en la misma sesión: es precisamente lo que el diseño

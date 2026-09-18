@@ -12,9 +12,10 @@ import json, os, re, sys
 
 # fase -> (archivo que debe existir bajo changes/<id>/, explicación)
 PRECONDITIONS = {
-    "sdd-apply":   ("spec.delta.yaml",       "la feature no tiene delta: declara `touches` antes de implementar (skill: sdd-delta)"),
-    "sdd-verify":  ("evidence/seal.json",    "el candidato no esta sellado: congela antes de leer (`python gates/seal.py`)"),
-    "sdd-archive": ("evidence/receipt.json", "no hay comprobante valido: sin comprobante no hay ion (skill: sdd-receipt)"),
+    "sdd-apply":      ("tasks.md",              "el change no tiene tasks.md: genera los artefactos antes de implementar (skill: sdd-propose)"),
+    "sdd-verify":     ("evidence/seal.json",    "el candidato no esta sellado: congela antes de leer (`python gates/seal.py`)"),
+    "sdd-sync-specs": ("evidence/receipt.json", "no hay comprobante valido: las main specs no se tocan sin evidencia (skill: sdd-receipt)"),
+    "sdd-archive":    ("evidence/receipt.json", "no hay comprobante valido: sin comprobante no hay fusion (skill: sdd-receipt)"),
 }
 
 def main() -> int:

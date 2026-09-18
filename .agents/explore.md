@@ -19,7 +19,7 @@ Un hallazgo en `openspec/changes/<feature-id>/evidence/finding.md` con:
 
 ## Cómo trabajas
 
-- Antes de perfilar una fuente, lee `10-data` del Spec Pack si existe: exploras contra un
+- Antes de perfilar una fuente, lee `<modelo>-data` del Spec Pack si existe: exploras contra un
   contrato, no en el vacío.
 - Declara la ventana temporal y el tamaño de muestra en cada afirmación. Un número sin su
   denominador no es evidencia.
@@ -29,7 +29,7 @@ Un hallazgo en `openspec/changes/<feature-id>/evidence/finding.md` con:
 ## Lo que hace útil este agente
 
 Un análisis exploratorio es una feature como cualquier otra y **archiva igual**, aunque no
-termine en despliegue. Su `spec.delta.yaml` lleva `touches: []`. Eso convierte el trabajo que
+termine en despliegue: su change no lleva delta specs. Eso convierte el trabajo que
 hoy se evapora en notebooks en algo consultable dentro de seis meses.
 
 Un resultado negativo archivado vale tanto como uno positivo: evita que el equipo repita la

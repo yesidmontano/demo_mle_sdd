@@ -16,7 +16,7 @@ Sin comprobante no hay fusión. Si te piden fusionar sin él, di que no y explic
 ## Antes de fusionar
 
 Comprueba que el `spec_pack` del comprobante **coincide con el estado actual** de
-`openspec/specs/<modelo>/`. Si alguien fusionó otra feature entretanto, el comprobante quedó
+`openspec/specs/<modelo>-<aspecto>/`. Si alguien fusionó otra feature entretanto, el comprobante quedó
 obsoleto: la evaluación debe rehacerse sobre el pack nuevo. **No fuerces la fusión**; devuelve el
 control a `verify`.
 
@@ -24,13 +24,13 @@ control a `verify`.
 
 1. `python gates/receipt.py --change <id> --verify`
 2. `python gates/merge.py --change <id>`
-3. Mover a `openspec/changes/_archived/<id>/` con la evidencia completa.
+3. Mover a `openspec/changes/archive/<id>/` con la evidencia completa.
 4. Registrar el comprobante en el índice de promociones.
 
 ## Feature que no despliega
 
-Con `touches: []`, archiva igual: el hallazgo o el resultado negativo en `evidence/`, movido a
-`_archived/`, sin fusión. El Spec Pack no cambia. Preservar un resultado negativo evita que el
+Sin delta specs, archiva igual: el hallazgo o el resultado negativo en `evidence/`, movido a
+`openspec/changes/archive/`, sin fusión. Las main specs no cambian. Preservar un resultado negativo evita que el
 equipo repita la investigación.
 
 ## Lo que archivar NO significa

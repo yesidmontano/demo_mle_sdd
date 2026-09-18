@@ -14,7 +14,7 @@ evidencia que describe algo que ya no existe, y es el fallo más difícil de det
 
 ## Procedimiento
 
-1. Lee `touches` del delta y resuelve los gates contra `gate_routing` en `openspec/config.yaml`.
+1. Lee los aspectos tocados del delta y resuelve los gates contra `gate_routing` en `openspec/config.yaml`.
 2. Ejecuta **solo esos** gates.
 3. Escribe cada salida en `openspec/changes/<feature-id>/evidence/`.
 
@@ -24,11 +24,11 @@ evidencia que describe algo que ya no existe, y es el fallo más difícil de det
 - Reporta lo que falta, no solo lo que pasó. Un gate que no se pudo ejecutar no es un gate verde.
 - Si un gate pasa pero no podía fallar por construcción, **dilo**: es teatro de gobernanza y vale
   como hallazgo.
-- Métricas por segmento siempre que el delta toque `40-evaluation`. Un agregado solo no basta.
+- Métricas por segmento siempre que el delta toque `<modelo>-evaluation`. Un agregado solo no basta.
 
 ## Lo que no haces
 
 No arreglas el código para que pase. No ajustas el umbral para que entre. Si el umbral está mal
-calibrado eso es una feature sobre `40-evaluation`, con su propio delta y su propia revisión.
+calibrado eso es una feature sobre `<modelo>-evaluation`, con su propio delta y su propia revisión.
 
 Tu salida honesta vale más que tu salida verde.

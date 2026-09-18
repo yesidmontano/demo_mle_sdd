@@ -1,48 +1,45 @@
 ---
 name: sdd-archive
-description: Cerrar una feature — fusionar su delta al Spec Pack y archivar la evidencia. Usar cuando los gates pasan, y también cuando la feature termina sin despliegue (un hallazgo o un resultado negativo).
+description: Cerrar un change — fusionar sus deltas y moverlo al archivo. Usar cuando los gates pasan, y también cuando el change termina sin despliegue (un hallazgo o un resultado negativo).
 ---
 
-# Archivar — fusión y cierre
+# Archivar — `openspec-archive-change` con comprobante
 
-Archivar hace dos cosas: **fusiona el delta al Spec Pack** y **preserva la evidencia**. El Spec
-Pack pasa a reflejar el nuevo estado de producción.
+Cierra el change y actualiza las main specs. Usa el CLI:
 
-## Precondición
+```bash
+openspec archive <nombre>
+```
 
-Existe `openspec/changes/<feature-id>/evidence/receipt.json`, válido, con todos los gates que el
-alcance activó en verde. **Sin comprobante no hay fusión.** Un hook del entorno lo impone.
+## Precondición innegociable
 
-## Procedimiento — feature que cambia el contrato
+Existe `evidence/receipt.json`, verificable, con todos los gates que el alcance activó en verde.
+**Sin comprobante no hay fusión.** Un hook lo comprueba al entrar en la fase; si te piden
+archivar sin él, di que no y explica qué falta.
 
-1. Verificar el comprobante:
-   ```bash
-   python gates/receipt.py --change <feature-id> --verify
-   ```
-2. Comprobar que `spec_pack` del comprobante coincide con el estado actual de
-   `openspec/specs/<modelo>/`. Si alguien fusionó otra feature entretanto, el comprobante quedó
-   obsoleto: **rehacer la evaluación sobre el pack nuevo**, no forzar la fusión.
-3. Aplicar el delta:
-   ```bash
-   python gates/merge.py --change <feature-id>
-   ```
-4. Mover la feature a `openspec/changes/_archived/<feature-id>/` con su evidencia completa.
-5. Registrar el comprobante en el índice de promociones.
+Si los deltas ya se fusionaron con `sdd-sync-specs`, archiva sin volver a fusionarlos.
 
-## Procedimiento — feature que NO despliega
+## Change que cambia el contrato
 
-Un análisis exploratorio o un experimento fallido **archivan igual**, con `touches: []`:
+1. `python gates/receipt.py --change <nombre> --verify`
+2. Comprobar que el `spec_pack` del comprobante coincide con `openspec/specs/`. Si divergió,
+   rehacer la verificación; no forzar.
+3. Fusionar (si falta) y mover a `openspec/changes/archive/<nombre>/` con la evidencia completa.
+4. Registrar el comprobante en el índice de promociones.
 
-1. Escribir `evidence/finding.md` con la conclusión y los datos que la sostienen.
+## Change que no despliega
+
+Un análisis exploratorio o un experimento fallido **archivan igual**, sin delta que fusionar:
+
+1. `evidence/finding.md` con la conclusión y los datos que la sostienen.
 2. Si el resultado es negativo, decir **qué se descarta y bajo qué condiciones**, para que nadie
    repita la investigación dentro de seis meses.
-3. Mover a `openspec/changes/_archived/<feature-id>/`. No hay fusión: el Spec Pack no cambia.
+3. Mover a `openspec/changes/archive/<nombre>/`. Las main specs no cambian.
 
-Esto no es burocracia añadida: es exactamente el trabajo que hoy se pierde en notebooks, y se
-recupera sin esfuerzo extra porque el flujo es el mismo para toda feature.
+Esto no es burocracia añadida: es el trabajo que hoy se pierde en notebooks, recuperado sin
+esfuerzo extra porque el flujo es el mismo para todo change.
 
-## Qué no hace archivar
+## Lo que archivar NO significa
 
-Archivar **no despliega ni aprueba**. Registra el estado real, incluido el trabajo inacabado si
-se archiva explícitamente. La política del repositorio y el tier siguen decidiendo quién firma
-la entrega.
+No despliega y no aprueba. Registra el estado real, incluido el trabajo inacabado si se archiva
+explícitamente. La política del repositorio y el tier deciden quién firma; el comprobante informa.
