@@ -166,7 +166,7 @@ un notebook suelto.
 | `code/<fase>/` | Una subcarpeta por fase del ciclo de vida. Scripts ejecutables **desde la raíz del repositorio**, no desde su propia carpeta |
 | `data/bronze/` | Datos crudos tal como llegaron. **Inmutables**: ningún script escribe aquí |
 | `data/silver/` | **Feature store.** Dataset limpio y validado, split `train`/`test` (limpios y transformados), pipeline de preprocesamiento ajustado (`.joblib`) y `manifest.json` con semilla, conteos y hashes. Derivados y reproducibles |
-| `data/gold/` | **Solo inferencia**: datos de inferencia y pruebas de despliegue. Ningún dataset de entrenamiento ni de evaluación |
+| `data/gold/` | **Solo inferencia**: `data/gold/inferences/` guarda una fila por sesión servida (versión del modelo, entradas `in_*`, probabilidad, decisión, latencia, estado). Ningún dataset de entrenamiento ni de evaluación. No se versiona |
 | `results/<fase>/` | Salidas por fase: markdown y tablas. Lo que se lee, no lo que se ejecuta |
 | `results/<fase>/imgs/` | **Toda imagen y gráfico** de la fase, sin excepción. El markdown de `results/<fase>/` los referencia con ruta relativa |
 
@@ -188,6 +188,28 @@ del feature engineering: las transformaciones que aprenden de los datos (escalad
 encoding) se ajustan solo con `train` y se aplican a `test`. El pipeline se define en su propio
 módulo (`code/03-data_preparation/preprocessing.py`), separado del script que lo ejecuta, para
 que serving lo reutilice tal cual.
+
+### Despliegue y monitoreo (simulados en local)
+
+No hay nube: el «despliegue» es una función con comando y el «monitoreo» un dashboard HTML.
+
+```bash
+python code/06-deploy/register_model.py            # registra v1 (línea base, rollback) y v2 (candidato sellado)
+python code/06-deploy/promote.py --version 2       # asigna `champion`; exige comprobante (receipt.json)
+python code/06-deploy/predict.py                   # 3 sesiones al azar, alias champion -> data/gold/inferences/
+python code/06-deploy/predict.py --model-version 1 # la versión del modelo es un parámetro, no código
+python code/06-deploy/simulate_traffic.py --batches 300 --drift-from-batch 220 --reset   # source = simulation
+python code/07_operation_and_monitoring/build_dashboard.py   # results/07_operation_and_monitoring/dashboard.html
+```
+
+- El modelo servido siempre es una **versión registrada** en MLflow (`mlflow.pyfunc`, con `signature`); cada
+  inferencia guarda su versión y `run_id`. Rollback = `promote.py --version <anterior>`.
+- **`champion` solo se asigna con comprobante** que ligue spec pack, dataset, código, entorno, modelo y `run_id`
+  con todos los gates en verde.
+- Cada inferencia guarda las **entradas** (`in_*`): son la base del data drift. El tráfico simulado se marca
+  `source = simulation`; nunca se presenta como tráfico real.
+- El dashboard se genera desde Gold con `drift.py`, la misma lógica de alertas que usan los gates `alert-backtest`
+  y `false-positive-budget`.
 
 ### MLflow: obligatorio, con signature y flavor
 

@@ -1,0 +1,50 @@
+{
+  "gate": "contract-compat",
+  "status": "pass",
+  "metrics": [
+    {
+      "check": "version_selectable v1",
+      "ok": true
+    },
+    {
+      "check": "version_selectable v2",
+      "ok": true
+    },
+    {
+      "check": "default_alias",
+      "value": "champion",
+      "ok": true
+    },
+    {
+      "check": "signature_matches_spec",
+      "ok": true,
+      "detail": {}
+    },
+    {
+      "check": "invalid_row_rejected_batch_continues",
+      "ok": true
+    },
+    {
+      "check": "record_columns_present",
+      "ok": true,
+      "missing": [],
+      "nulls": []
+    },
+    {
+      "check": "inputs_stored_with_prefix",
+      "ok": true,
+      "missing": [],
+      "nulls": []
+    },
+    {
+      "check": "threshold_matches_k",
+      "value": 0.2001,
+      "ok": true
+    },
+    {
+      "check": "promotion_receipt_valid",
+      "ok": true
+    }
+  ],
+  "detail": "0 de 9 comprobaciones fallan"
+}

@@ -1,0 +1,32 @@
+{
+  "gate": "alert-backtest",
+  "status": "pass",
+  "metrics": [
+    {
+      "check": "detection_rate_with_drift >= 0.9",
+      "value": 0.975,
+      "median_max_psi": 0.421,
+      "ok": true
+    },
+    {
+      "check": "signals_present",
+      "missing": [],
+      "ok": true
+    },
+    {
+      "check": "slices_present",
+      "missing": [],
+      "ok": true
+    },
+    {
+      "check": "dashboard_offline",
+      "ok": true
+    },
+    {
+      "check": "dashboard_panels",
+      "missing": [],
+      "ok": true
+    }
+  ],
+  "detail": "0 de 5 comprobaciones fallan"
+}

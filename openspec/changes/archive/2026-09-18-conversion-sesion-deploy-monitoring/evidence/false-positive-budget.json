@@ -1,0 +1,14 @@
+{
+  "gate": "false-positive-budget",
+  "status": "pass",
+  "metrics": [
+    {
+      "check": "alert_rate_no_drift <= 0.05",
+      "value": 0.01,
+      "median_max_psi": 0.114,
+      "windows": 200,
+      "ok": true
+    }
+  ],
+  "detail": "0 de 1 comprobaciones fallan"
+}

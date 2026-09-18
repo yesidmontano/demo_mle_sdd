@@ -1,0 +1,14 @@
+{
+  "gate": "latency-p99",
+  "status": "pass",
+  "metrics": [
+    {
+      "check": "p99_ms <= 250",
+      "value": 155.53,
+      "p50_ms": 80.87,
+      "sessions": 200,
+      "ok": true
+    }
+  ],
+  "detail": "0 de 1 comprobaciones fallan"
+}

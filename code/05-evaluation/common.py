@@ -67,3 +67,6 @@ def score(change: str, k_fraction: float) -> dict:
         out[role] = {"p": p, "global": M.global_metrics(y, p, k_fraction),
                      "slices": M.slice_metrics(y, p, slices, k_fraction)}
     return out
+
+
+REGISTERED_MODEL = "conversion-sesion"

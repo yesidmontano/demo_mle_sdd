@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Monitoreo conversion-sesion</title>
+<style>
+/* Tokens de la marca Avianca (design_system/avianca_brand). Los pasos oscuros son los mismos tonos ajustados a la superficie oscura. */
+:root {
+  color-scheme: light;
+  --page: #F8F8F8; --surface: #FFFFFF; --hair: #E4E4E4; --grid: #EDEDED;
+  --text: #131313; --text-2: #5A5A5A; --text-3: #7A7A7A;
+  --s1: #1B1B1B; --s2: #0190A0; --ctx: #D9D9D9; --wash: rgba(1,144,160,.10);
+  --good: #1EA93C; --warn: #B26A00; --bad: #CC0000; --none: #7A7A7A;
+  --accent: #FF0000;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page: #121212; --surface: #1B1B1B; --hair: #2E2E2E; --grid: #2A2A2A;
+    --text: #F8F8F8; --text-2: #B5B5B5; --text-3: #8A8A8A;
+    --s1: #F8F8F8; --s2: #4FB8C4; --ctx: #4A4A4A; --wash: rgba(79,184,196,.14);
+    --good: #4CC96A; --warn: #F0B84D; --bad: #FF6666; --none: #8A8A8A;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #121212; --surface: #1B1B1B; --hair: #2E2E2E; --grid: #2A2A2A;
+  --text: #F8F8F8; --text-2: #B5B5B5; --text-3: #8A8A8A;
+  --s1: #F8F8F8; --s2: #4FB8C4; --ctx: #4A4A4A; --wash: rgba(79,184,196,.14);
+  --good: #4CC96A; --warn: #F0B84D; --bad: #FF6666; --none: #8A8A8A;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--text);
+  font: 14px/1.45 "Red Hat Text", "Red Hat Display", "Helvetica Neue", Arial, sans-serif; }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 24px 16px 56px; }
+header { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-end; justify-content: space-between; }
+h1 { font: 700 26px/1.15 "Red Hat Display", "Helvetica Neue", Arial, sans-serif; margin: 0; }
+h1::after { content: ""; display: block; width: 44px; height: 3px; background: var(--accent); margin-top: 10px; }
+.meta { color: var(--text-2); font-size: 12.5px; margin-top: 10px; }
+.badge { display: inline-block; padding: 1px 8px; border: 1px solid var(--warn); color: var(--warn); border-radius: 10px; font-size: 12px; font-weight: 700; margin-right: 8px; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; margin: 20px 0 18px; }
+.filters .grp { display: flex; align-items: center; gap: 8px; color: var(--text-2); font-size: 12.5px; }
+.seg { display: inline-flex; border: 1px solid var(--hair); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.seg button, .btn { font: inherit; font-size: 13px; padding: 6px 12px; border: 0; background: transparent; color: var(--text); cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--hair); }
+.seg button[aria-pressed="true"] { background: var(--s1); color: var(--surface); font-weight: 700; }
+.btn { border: 1px solid var(--hair); border-radius: 8px; background: var(--surface); }
+button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--s2); outline-offset: 2px; }
+.card { background: var(--surface); border: 1px solid var(--hair); border-radius: 12px; padding: 16px 18px; }
+.grid { display: grid; gap: 16px; grid-template-columns: repeat(12, 1fr); margin-top: 16px; }
+.c6 { grid-column: span 6; } .c4 { grid-column: span 4; } .c8 { grid-column: span 8; } .c12 { grid-column: span 12; }
+@media (max-width: 900px) { .c6, .c4, .c8 { grid-column: span 12; } }
+.card h2 { font: 700 15px/1.3 "Red Hat Display", "Helvetica Neue", Arial, sans-serif; margin: 0; display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.card .sub { color: var(--text-2); font-size: 12.5px; margin: 2px 0 10px; }
+.tv { font-size: 12px; padding: 2px 8px; border: 1px solid var(--hair); border-radius: 6px; background: transparent; color: var(--text-2); cursor: pointer; }
+.hero { display: flex; flex-wrap: wrap; gap: 8px 28px; align-items: center; }
+.hero .big { font: 700 52px/1 "Red Hat Display", "Helvetica Neue", Arial, sans-serif; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.chip { display: inline-flex; gap: 6px; align-items: center; border: 1px solid var(--hair); border-radius: 999px; padding: 3px 10px; font-size: 12.5px; }
+.st { font-weight: 700; }
+.st.ok { color: var(--good); } .st.aviso { color: var(--warn); } .st.alerta { color: var(--bad); } .st.datos-insuficientes { color: var(--none); }
+.tiles { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); margin-top: 16px; }
+.tile .lab { color: var(--text-2); font-size: 12.5px; }
+.tile .val { font: 700 30px/1.15 "Red Hat Display", "Helvetica Neue", Arial, sans-serif; margin-top: 4px; }
+.tile .note { color: var(--text-2); font-size: 12px; margin-top: 2px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12.5px; color: var(--text-2); margin-bottom: 6px; }
+.legend i { display: inline-block; width: 12px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+.legend i.sq { height: 10px; width: 10px; border-radius: 2px; }
+svg text { fill: var(--text-2); font: 11.5px "Red Hat Text", "Helvetica Neue", Arial, sans-serif; }
+svg .grid line { stroke: var(--grid); stroke-width: 1; }
+svg .axis line, svg .axis path { stroke: var(--hair); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; color: var(--text-2); font-weight: 500; border-bottom: 1px solid var(--hair); padding: 6px 8px; }
+td { padding: 6px 8px; border-bottom: 1px solid var(--grid); vertical-align: middle; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.meter { position: relative; height: 8px; background: var(--grid); border-radius: 4px; min-width: 90px; }
+.meter b { position: absolute; left: 0; top: 0; bottom: 0; background: var(--s1); border-radius: 4px; }
+.meter u { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--s2); }
+.empty { color: var(--text-2); padding: 28px 8px; text-align: center; border: 1px dashed var(--hair); border-radius: 8px; }
+.mono { font-family: "Red Hat Mono", Menlo, Consolas, monospace; font-size: 12px; }
+#tip { position: fixed; pointer-events: none; z-index: 10; background: var(--surface); color: var(--text); border: 1px solid var(--hair);
+  border-radius: 8px; padding: 8px 10px; font-size: 12.5px; box-shadow: 0 4px 14px rgba(0,0,0,.18); display: none; max-width: 260px; }
+#tip .ttl { color: var(--text-2); margin-bottom: 4px; }
+#tip .row { display: flex; align-items: center; gap: 8px; }
+#tip .row i { width: 12px; height: 3px; border-radius: 2px; display: inline-block; }
+#tip .row b { margin-left: auto; padding-left: 12px; font-variant-numeric: tabular-nums; }
+.host { min-height: 60px; transition: opacity .15s; }
+.note-sim { color: var(--text-2); font-size: 12px; margin-top: 18px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Monitoreo · conversion-sesion</h1>
+      <div class="meta" id="meta"></div>
+    </div>
+    <button class="btn" id="theme" type="button" aria-label="Cambiar tema">Tema</button>
+  </header>
+
+  <div class="filters" role="group" aria-label="Filtros">
+    <div class="grp">Rango <div class="seg" id="f-range"></div></div>
+    <div class="grp">Origen <div class="seg" id="f-source"></div></div>
+  </div>
+
+  <div id="app"></div>
+  <p class="note-sim">Las inferencias con origen «simulation» son tráfico simulado localmente por <span class="mono">simulate_traffic.py</span>. No hay resultados reales de conversión en línea: este tablero monitorea entradas, salidas y operación, no el desempeño del modelo.</p>
+</div>
+<div id="tip" role="tooltip"></div>
+
+<script id="data" type="application/json">/*__DATA__*/null</script>
+<script>
+"use strict";
+const DATA = JSON.parse(document.getElementById("data").textContent);
+const state = { range: "all", source: "all" };
+const NS = "http://www.w3.org/2000/svg";
+const nf = (d = 0) => new Intl.NumberFormat("es-CO", { maximumFractionDigits: d, minimumFractionDigits: d });
+const pct = (v, d = 1) => v == null ? "—" : nf(d).format(v * 100) + " %";
+const fdate = (iso) => new Date(iso).toLocaleString("es-CO", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+const NAMES = {
+  psi_features: "Drift de entradas (PSI máx.)", psi_score: "Drift de la puntuación (PSI)",
+  latency_p99: "Latencia p99 por sesión", rejection_rate: "Tasa de rechazo",
+  unseen_categories: "Categorías no vistas", intervention_rate: "Desvío de la tasa de intervención (vs K)",
+};
+const ST = { "ok": ["✓", "En orden"], "aviso": ["▲", "Aviso"], "alerta": ["✕", "Alerta"], "datos insuficientes": ["…", "Datos insuficientes"] };
+const stClass = (s) => s.replace(" ", "-");
+const FEATURE_NAMES = { psi: "PSI" };
+
+/* ---------- utilidades DOM (los textos de los datos siempre van con textContent) ---------- */
+function h(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === "class") e.className = v; else if (k.startsWith("on")) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v);
+  }
+  for (const k of kids.flat()) if (k != null) e.append(k.nodeType ? k : document.createTextNode(String(k)));
+  return e;
+}
+function s(tag, attrs, ...kids) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs || {})) e.setAttribute(k, v);
+  for (const k of kids.flat()) if (k != null) e.append(k.nodeType ? k : document.createTextNode(String(k)));
+  return e;
+}
+const tip = document.getElementById("tip");
+function showTip(ev, title, rows) {
+  tip.replaceChildren(h("div", { class: "ttl" }, title),
+    ...rows.map(r => h("div", { class: "row" }, r.color ? h("i", { style: "background:" + r.color }) : null, h("span", null, r.label), h("b", null, r.value))));
+  tip.style.display = "block";
+  const x = Math.min(ev.clientX + 14, window.innerWidth - tip.offsetWidth - 8);
+  tip.style.left = x + "px"; tip.style.top = Math.max(8, ev.clientY - tip.offsetHeight - 12) + "px";
+}
+const hideTip = () => { tip.style.display = "none"; };
+/* Escala con pasos redondos (1, 2, 5 × 10^k): 0 / 20 / 40, nunca 0 / 12,5 / 25 */
+function scaleFor(v) {
+  const raw = Math.max(v, 1e-9) / 4, p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p;
+  const step = (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p, n = Math.max(1, Math.ceil(v / step - 1e-9));
+  return { max: step * n, ticks: Array.from({ length: n + 1 }, (_, i) => step * i) };
+}
+const MES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+const fshort = (iso) => { const d = new Date(iso), p = (n) => String(n).padStart(2, "0"); return `${p(d.getDate())} ${MES[d.getMonth()]} ${p(d.getHours())}:${p(d.getMinutes())}`; };
+
+/* ---------- tarjeta con vista de tabla (gemela accesible de cada gráfico) ---------- */
+function card(panel, cls, title, sub, draw, tableFn) {
+  const host = h("div", { class: "host" });
+  let asTable = false;
+  const btn = h("button", { class: "tv", type: "button", "aria-pressed": "false" }, "Ver tabla");
+  const paint = () => {
+    host.replaceChildren();
+    if (asTable) host.append(tableFn()); else draw(host);
+    btn.textContent = asTable ? "Ver gráfico" : "Ver tabla"; btn.setAttribute("aria-pressed", String(asTable));
+  };
+  btn.addEventListener("click", () => { asTable = !asTable; paint(); });
+  const el = h("section", { class: "card " + cls, "data-panel": panel }, h("h2", null, h("span", null, title), tableFn ? btn : null), h("div", { class: "sub" }, sub), host);
+  new ResizeObserver(() => { if (!asTable && host.clientWidth) draw(host); }).observe(host);
+  requestAnimationFrame(paint);
+  return el;
+}
+function simpleTable(head, rows) {
+  return h("table", null, h("thead", null, h("tr", null, head.map((c, i) => h("th", { class: i ? "num" : "" }, c)))),
+    h("tbody", null, rows.map(r => h("tr", null, r.map((c, i) => h("td", { class: i ? "num" : "" }, c))))));
+}
+const legend = (items) => h("div", { class: "legend" }, items.map(i => h("span", null, h("i", { class: i.sq ? "sq" : "", style: "background:" + i.color }), i.name)));
+
+/* ---------- gráficos SVG ---------- */
+function frame(host, height, m) {
+  const w = Math.max(host.clientWidth, 280);
+  const svg = s("svg", { viewBox: `0 0 ${w} ${height}`, width: "100%", height, role: "img" });
+  return { svg, w, h: height, iw: w - m.l - m.r, ih: height - m.t - m.b, m };
+}
+function yAxis(f, sc, fmt) {
+  const g = s("g", { class: "grid" }), max = sc.max;
+  for (const t of sc.ticks) {
+    const y = f.m.t + f.ih - (t / max) * f.ih;
+    g.append(s("line", { x1: f.m.l, x2: f.m.l + f.iw, y1: y, y2: y }), s("text", { x: f.m.l - 8, y: y + 4, "text-anchor": "end" }, fmt(t)));
+  }
+  f.svg.append(g);
+}
+function timeAxis(f, t0, t1) {
+  const g = s("g", { class: "axis" }), n = Math.max(2, Math.min(5, Math.floor(f.iw / 130)));
+  for (let i = 0; i <= n; i++) {
+    const t = t0 + (t1 - t0) * i / n, x = f.m.l + f.iw * i / n;
+    g.append(s("text", { x, y: f.h - 8, "text-anchor": i === 0 ? "start" : i === n ? "end" : "middle" }, fshort(t)));
+  }
+  f.svg.append(g);
+}
+
+function lineChart(host, o) {
+  const m = { l: 52, r: 96, t: 10, b: 30 }, f = frame(host, o.height || 250, m);
+  const T = o.t.map(x => new Date(x).getTime()), t0 = Math.min(...T), t1 = Math.max(...T);
+  const all = o.series.flatMap(x => x.values).concat((o.refs || []).map(r => r.y)).concat(o.band ? [o.band[1]] : []).filter(v => v != null);
+  const sc = scaleFor(Math.max(...all) * 1.05), max = sc.max;
+  const X = t => m.l + (t1 === t0 ? f.iw / 2 : (t - t0) / (t1 - t0) * f.iw), Y = v => m.t + f.ih - v / max * f.ih;
+  yAxis(f, sc, o.yFmt);
+  if (o.band) f.svg.append(s("rect", { x: m.l, width: f.iw, y: Y(o.band[1]), height: Y(o.band[0]) - Y(o.band[1]), fill: "var(--wash)" }));
+  for (const r of o.refs || []) {
+    f.svg.append(s("line", { x1: m.l, x2: m.l + f.iw, y1: Y(r.y), y2: Y(r.y), stroke: r.color, "stroke-width": 1 }),
+      s("text", { x: m.l + f.iw + 6, y: Y(r.y) + 4 }, r.label));
+  }
+  timeAxis(f, t0, t1);
+  const usedY = [];
+  for (const se of o.series) {
+    const pts = se.values.map((v, i) => v == null ? null : [X(T[i]), Y(v)]).filter(Boolean);
+    if (!pts.length) continue;
+    f.svg.append(s("polyline", { points: pts.map(p => p.join(",")).join(" "), fill: "none", stroke: se.color, "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }));
+    const [ex, ey] = pts[pts.length - 1];
+    f.svg.append(s("circle", { cx: ex, cy: ey, r: 4, fill: se.color, stroke: "var(--surface)", "stroke-width": 2 }));
+    if (o.series.length > 1 && usedY.every(u => Math.abs(u - ey) > 14)) { f.svg.append(s("text", { x: ex + 8, y: ey + 4 }, se.name)); usedY.push(ey); }
+  }
+  const cross = s("line", { y1: m.t, y2: m.t + f.ih, stroke: css("--text-3"), "stroke-width": 1, visibility: "hidden" });
+  const dots = o.series.map(se => s("circle", { r: 4, fill: se.color, stroke: "var(--surface)", "stroke-width": 2, visibility: "hidden" }));
+  f.svg.append(cross, ...dots);
+  const hit = s("rect", { x: m.l, y: m.t, width: f.iw, height: f.ih, fill: "transparent", tabindex: 0, "aria-label": o.aria || "Gráfico de líneas; usa la vista de tabla para leer los valores" });
+  const at = (ev) => {
+    const r = f.svg.getBoundingClientRect(), px = (ev.clientX - r.left) * (f.w / r.width);
+    let bi = 0, bd = Infinity; T.forEach((t, i) => { const d = Math.abs(X(t) - px); if (d < bd) { bd = d; bi = i; } });
+    cross.setAttribute("x1", X(T[bi])); cross.setAttribute("x2", X(T[bi])); cross.setAttribute("visibility", "visible");
+    o.series.forEach((se, k) => { const v = se.values[bi]; if (v == null) dots[k].setAttribute("visibility", "hidden"); else { dots[k].setAttribute("cx", X(T[bi])); dots[k].setAttribute("cy", Y(v)); dots[k].setAttribute("visibility", "visible"); } });
+    showTip(ev, fdate(T[bi]), o.series.map(se => ({ color: se.color, label: se.name, value: se.values[bi] == null ? "—" : o.tipFmt(se.values[bi]) })));
+  };
+  hit.addEventListener("pointermove", at); hit.addEventListener("pointerleave", () => { hideTip(); cross.setAttribute("visibility", "hidden"); dots.forEach(d => d.setAttribute("visibility", "hidden")); });
+  f.svg.append(hit);
+  host.replaceChildren(o.series.length > 1 ? legend(o.series.map(x => ({ name: x.name, color: x.color }))) : "", f.svg);
+}
+
+function barPath(x, y, w, hgt, r = 4) {           // esquina redondeada arriba, base recta
+  r = Math.min(r, w / 2, hgt);
+  return `M${x},${y + hgt} V${y + r} Q${x},${y} ${x + r},${y} H${x + w - r} Q${x + w},${y} ${x + w},${y + r} V${y + hgt} Z`;
+}
+function columnChart(host, o) {                    // o: labels, groups:[{name,color,values}], yFmt, tipFmt
+  const m = { l: 52, r: 12, t: 10, b: 44 }, f = frame(host, o.height || 240, m);
+  const sc = scaleFor(Math.max(...o.groups.flatMap(g => g.values.filter(v => v != null))) * 1.05 || 1), max = sc.max;
+  yAxis(f, sc, o.yFmt);
+  const n = o.labels.length, slot = f.iw / n, every = Math.max(1, Math.ceil((o.labelWidth || 84) / slot)), gapW = 2, gw = Math.min(24, (slot - 6) / o.groups.length - gapW);
+  const g = s("g");
+  o.labels.forEach((lab, i) => {
+    const total = o.groups.length * (gw + gapW) - gapW, x0 = m.l + slot * i + (slot - total) / 2;
+    o.groups.forEach((gr, k) => {
+      const v = gr.values[i] || 0, hgt = v / max * f.ih, x = x0 + k * (gw + gapW);
+      const b = s("path", { d: barPath(x, m.t + f.ih - hgt, gw, hgt), fill: gr.color, tabindex: 0, "aria-label": `${lab}: ${gr.name} ${o.tipFmt(v)}` });
+      const tipRows = () => o.groups.map(q => ({ color: q.color, label: q.name, value: o.tipFmt(q.values[i] || 0) }));
+      b.addEventListener("pointermove", ev => showTip(ev, lab, tipRows())); b.addEventListener("pointerleave", hideTip);
+      b.addEventListener("focus", () => { const r = b.getBoundingClientRect(); showTip({ clientX: r.left, clientY: r.top }, lab, tipRows()); }); b.addEventListener("blur", hideTip);
+      g.append(b);
+    });
+    if (i % every === 0) { const lx = m.l + slot * i + slot / 2; g.append(s("text", { x: lx, y: f.h - 22, "text-anchor": lx > f.w - 44 ? "end" : "middle" }, lab)); }
+  });
+  f.svg.append(g);
+  host.replaceChildren(o.groups.length > 1 ? legend(o.groups.map(x => ({ name: x.name, color: x.color, sq: true }))) : "", f.svg);
+}
+
+function hbarChart(host, o) {                      // PSI por feature con marcas de aviso y alerta
+  const rows = Object.entries(o.values).sort((a, b) => b[1] - a[1]), rh = 26, m = { l: 150, r: 110, t: 22, b: 8 };
+  const f = frame(host, rows.length * rh + m.t + m.b, m);
+  const max = scaleFor(Math.max(0.3, ...rows.map(r => r[1])) * 1.05).max, X = v => m.l + v / max * f.iw;
+  for (const [v, lab, anchor] of [[o.warn, "aviso " + nf(2).format(o.warn), "end"], [o.alert, "alerta " + nf(2).format(o.alert), "start"]])
+    f.svg.append(s("line", { x1: X(v), x2: X(v), y1: m.t - 4, y2: f.h - m.b, stroke: css("--text-3"), "stroke-width": 1 }), s("text", { x: X(v) + (anchor === "end" ? -4 : 4), y: 10, "text-anchor": anchor }, lab));
+  rows.forEach(([name, v], i) => {
+    const y = m.t + i * rh + 4, sev = v >= o.alert ? "alerta" : v >= o.warn ? "aviso" : "ok";
+    const col = sev === "alerta" ? "var(--bad)" : sev === "aviso" ? "var(--warn)" : "var(--s1)";
+    const b = s("path", { d: `M${m.l},${y} H${Math.max(X(v) - 4, m.l + 1)} Q${X(v)},${y} ${X(v)},${y + 4} V${y + 10} Q${X(v)},${y + 14} ${Math.max(X(v) - 4, m.l + 1)},${y + 14} H${m.l} Z`, fill: col, tabindex: 0, "aria-label": `${name}: PSI ${nf(3).format(v)} (${sev})` });
+    b.addEventListener("pointermove", ev => showTip(ev, name, [{ label: "PSI", value: nf(3).format(v) }, { label: "Estado", value: ST[sev][1] }])); b.addEventListener("pointerleave", hideTip);
+    f.svg.append(s("text", { x: m.l - 8, y: y + 11, "text-anchor": "end" }, name), b,
+      s("text", { x: X(v) + 8, y: y + 11 }, `${nf(3).format(v)}${sev === "ok" ? "" : "  " + ST[sev][0] + " " + ST[sev][1].toLowerCase()}`));
+  });
+  host.replaceChildren(f.svg);
+}
+
+/* ---------- vista ---------- */
+function statusOf(sig) {
+  const order = ["alerta", "aviso", "datos insuficientes", "ok"];
+  return order.find(o => sig.some(x => x.status === o)) || "ok";
+}
+function tile(label, value, note, extra) { return h("div", { class: "card tile" }, h("div", { class: "lab" }, label), h("div", { class: "val" }, value), h("div", { class: "note" }, note || ""), extra || null); }
+function render() {
+  const app = document.getElementById("app"), v = DATA.views[`${state.range}|${state.source}`];
+  app.replaceChildren();
+  if (!v || v.empty) { app.append(h("div", { class: "empty" }, "No hay inferencias para este filtro.")); return; }
+  const sig = v.signals, by = Object.fromEntries(sig.map(x => [x.name, x])), worst = statusOf(sig);
+  const nAl = sig.filter(x => x.status === "alerta").length, nAv = sig.filter(x => x.status === "aviso").length;
+  const headline = nAl ? `${nAl} ${nAl === 1 ? "alerta" : "alertas"}` : nAv ? `${nAv} ${nAv === 1 ? "aviso" : "avisos"}` : worst === "datos insuficientes" ? "Datos insuficientes" : "Todo en orden";
+
+  app.append(h("section", { class: "card" },
+    h("div", { class: "hero" }, h("div", { class: "big st " + stClass(worst) }, headline),
+      h("div", null, h("div", { class: "lab" }, "Estado sobre la última ventana de " + DATA.window + " inferencias"),
+        h("div", { class: "meta" }, `${nf().format(v.n)} inferencias entre ${fdate(v.first)} y ${fdate(v.last)}`))),
+    h("div", { class: "chips" }, sig.map(x => h("span", { class: "chip" }, h("span", { class: "st " + stClass(x.status) }, ST[x.status][0] + " " + ST[x.status][1]), NAMES[x.name])))));
+
+  const lat = by.latency_p99, ver = v.versions[0];
+  app.append(h("div", { class: "tiles" },
+    tile("Inferencias", nf().format(v.n), `${nf().format(v.n_ok)} ok · ${nf().format(v.n_rejected)} rechazadas`),
+    tile("Versión servida", "v" + ver.version, v.versions.length > 1 ? `${v.versions.length} versiones en el rango` : "run " + ver.run_id.slice(0, 8)),
+    tile("Latencia p99", lat.value == null ? "—" : nf(0).format(lat.value) + " ms", `umbral ${lat.warn} ms`),
+    tile("Rechazo", pct(by.rejection_rate.value), "umbral 1 %"),
+    tile("Categorías no vistas", pct(by.unseen_categories.value), "route / booking_origin"),
+    tile("Intervención", by.intervention_rate.detail.tasa == null ? "—" : pct(by.intervention_rate.detail.tasa), `esperada ${pct(DATA.k_fraction, 0)} (K)`)));
+
+  const g = h("div", { class: "grid" });
+  const seriesT = v.series.t, hrs = v.series.bucket_hours;
+  const lab = seriesT.map(t => hrs >= 24 ? (() => { const d = new Date(t); return `${String(d.getDate()).padStart(2, "0")} ${MES[d.getMonth()]}`; })() : fshort(t));
+  g.append(
+    card("volume", "c6", "Volumen de inferencias", `Sesiones servidas por ${hrs >= 24 ? "día" : hrs + " h"}`,
+      host => columnChart(host, { labels: lab, groups: [{ name: "Inferencias", color: css("--s1"), values: v.series.volume }], yFmt: t => nf().format(t), tipFmt: x => nf().format(x), labelWidth: 78 }),
+      () => simpleTable(["Periodo", "Inferencias", "Rechazadas"], seriesT.map((t, i) => [fdate(t), nf().format(v.series.volume[i]), nf().format(v.series.rejected[i])]))),
+    card("latency", "c6", "Latencia por sesión", "p50 y p99 en ms; la línea marca el umbral de aviso",
+      host => lineChart(host, { t: seriesT, series: [{ name: "p99", color: css("--s1"), values: v.series.latency_p99 }, { name: "p50", color: css("--s2"), values: v.series.latency_p50 }],
+        refs: [{ y: 250, label: "aviso 250 ms", color: css("--warn") }], yFmt: t => nf().format(t), tipFmt: x => nf(1).format(x) + " ms" }),
+      () => simpleTable(["Periodo", "p50 (ms)", "p99 (ms)"], seriesT.map((t, i) => [fdate(t), v.series.latency_p50[i] == null ? "—" : nf(1).format(v.series.latency_p50[i]), v.series.latency_p99[i] == null ? "—" : nf(1).format(v.series.latency_p99[i])]))));
+
+  const roll = v.rolling;
+  g.append(
+    card("drift", "c8", "Data drift en el tiempo", `PSI contra el conjunto de entrenamiento, ventanas móviles de ${DATA.window} inferencias`,
+      host => roll.length < 2 ? host.replaceChildren(h("div", { class: "empty" }, `Datos insuficientes: hacen falta al menos ${DATA.window + 25} inferencias para dibujar la evolución.`))
+        : lineChart(host, { t: roll.map(r => r.end), series: [{ name: "Entradas", color: css("--s1"), values: roll.map(r => r.psi_max) }, { name: "Puntuación", color: css("--s2"), values: roll.map(r => r.psi_score) }],
+          refs: [{ y: 0.10, label: "aviso 0,10", color: css("--warn") }, { y: 0.25, label: "alerta 0,25", color: css("--bad") }], yFmt: t => nf(2).format(t), tipFmt: x => nf(3).format(x) }),
+      () => simpleTable(["Fin de ventana", "PSI entradas", "Feature", "PSI puntuación"], roll.map(r => [fdate(r.end), nf(3).format(r.psi_max), r.feature, nf(3).format(r.psi_score)]))),
+    card("drift_features", "c4", "PSI por feature", "Última ventana; las marcas son los umbrales",
+      host => v.psi_by_feature ? hbarChart(host, { values: v.psi_by_feature, warn: 0.10, alert: 0.25 }) : host.replaceChildren(h("div", { class: "empty" }, `Datos insuficientes (${DATA.window} inferencias ok).`)),
+      () => simpleTable(["Feature", "PSI"], Object.entries(v.psi_by_feature || {}).sort((a, b) => b[1] - a[1]).map(([k, x]) => [k, nf(3).format(x)]))));
+
+  const sh = v.score_hist;
+  g.append(
+    card("score", "c6", "Distribución de la puntuación", "Ventana actual frente a la referencia (10 % de test por intervalo)",
+      host => sh.cur ? columnChart(host, { labels: sh.labels, groups: [{ name: "Referencia", color: css("--ctx"), values: sh.ref }, { name: "Ventana actual", color: css("--s1"), values: sh.cur }], yFmt: t => pct(t, 0), tipFmt: x => pct(x), height: 260, labelWidth: 84 })
+        : host.replaceChildren(h("div", { class: "empty" }, `Datos insuficientes (${DATA.window} inferencias ok).`)),
+      () => simpleTable(["Intervalo", "Referencia", "Ventana"], sh.labels.map((l, i) => [l, pct(sh.ref[i]), sh.cur ? pct(sh.cur[i]) : "—"]))),
+    card("intervention", "c6", "Tasa de intervención", `Ventanas móviles frente a K = ${pct(DATA.k_fraction, 0)}; la banda es ±5 pp`,
+      host => roll.length < 2 ? host.replaceChildren(h("div", { class: "empty" }, "Datos insuficientes para la evolución."))
+        : lineChart(host, { t: roll.map(r => r.end), series: [{ name: "Intervención", color: css("--s1"), values: roll.map(r => r.intervention) }], band: [DATA.k_fraction - 0.05, DATA.k_fraction + 0.05],
+          refs: [{ y: DATA.k_fraction, label: "K", color: css("--s2") }], yFmt: t => pct(t, 0), tipFmt: x => pct(x) }),
+      () => simpleTable(["Fin de ventana", "Intervención", "Categorías no vistas"], roll.map(r => [fdate(r.end), pct(r.intervention), pct(r.unseen)]))));
+
+  const meterCell = (value, mark) => h("div", { style: "display:flex;gap:8px;align-items:center" },
+    h("div", { class: "meter", style: "flex:1" }, h("b", { style: `width:${Math.min(100, value * 100 / 0.6)}%` }), mark == null ? null : h("u", { style: `left:${mark * 100 / 0.6}%` })),
+    h("span", { style: "min-width:48px;text-align:right" }, pct(value)));
+  const sliceRows = Object.entries(v.slices).flatMap(([col, vals]) => Object.entries(vals).filter(([, r]) => r.n >= 20).map(([val, r]) =>
+    h("tr", null, h("td", null, col), h("td", null, val), h("td", { class: "num" }, nf().format(r.n)), h("td", null, meterCell(r.score_medio)), h("td", null, meterCell(r.intervencion, DATA.k_fraction)))));
+  const sl = h("table", null, h("thead", null, h("tr", null, ["Segmento", "Valor", "Sesiones", "Puntuación media", "Intervención"].map((c, i) => h("th", { class: i === 2 ? "num" : "" }, c)))), h("tbody", null, sliceRows));
+  g.append(h("section", { class: "card c12", "data-panel": "slices" }, h("h2", null, "Segmentos"), h("div", { class: "sub" }, "Los mismos segmentos de la evaluación (se omiten los de menos de 20 sesiones); la marca teal en la intervención es K"), sl));
+
+  const sigTable = simpleTable(["Señal", "Valor", "Aviso", "Alerta", "Estado", "Acción"], sig.map(x => [NAMES[x.name], x.value == null ? "—" : nf(x.unit === "ms" ? 0 : 3).format(x.value) + (x.unit === "ms" ? " ms" : ""), String(x.warn), String(x.alert), h("span", { class: "st " + stClass(x.status) }, ST[x.status][0] + " " + ST[x.status][1]), x.action]));
+  sigTable.querySelectorAll("td:last-child, th:last-child").forEach(c => { c.classList.remove("num"); });
+  g.append(h("section", { class: "card c12", "data-panel": "signals" }, h("h2", null, "Señales, umbrales y acciones"), h("div", { class: "sub" }, `Cada señal se evalúa sobre las últimas ${DATA.window} inferencias`), sigTable));
+
+  const vt = simpleTable(["Versión", "Run de MLflow", "Inferencias", "Participación"], v.versions.map(x => ["v" + x.version, h("span", { class: "mono" }, x.run_id.slice(0, 12)), nf().format(x.n), pct(x.share)]));
+  g.append(h("section", { class: "card c4", "data-panel": "model_version" }, h("h2", null, "Versión del modelo"), h("div", { class: "sub" }, "Qué versión atendió el tráfico"), vt));
+  const rt = simpleTable(["Hora", "v", "Origen", "Prob.", "Interviene", "ms", "Estado"], v.recent.map(r => [fdate(r.ts), "v" + r.version, r.source, r.prob == null ? "—" : nf(3).format(r.prob), r.intervene == null ? "—" : r.intervene ? "sí" : "no", r.latency == null ? "—" : nf(0).format(r.latency), r.status]));
+  g.append(h("section", { class: "card c8", "data-panel": "recent" }, h("h2", null, "Últimas inferencias"), h("div", { class: "sub" }, "Las 12 más recientes del rango"), rt));
+  g.append(h("section", { class: "card c12", "data-panel": "unseen_categories" }, h("h2", null, "Categorías no vistas"),
+    h("div", { class: "sub" }, "Sesiones con una ruta o un origen que no estaban en el entrenamiento"),
+    h("div", { class: "hero" }, h("div", { class: "big st " + stClass(by.unseen_categories.status) }, pct(by.unseen_categories.value)),
+      h("div", { class: "meta" }, `Aviso a partir de 5 %, alerta a partir de 15 %. Estado: ${ST[by.unseen_categories.status][1].toLowerCase()}. ${by.unseen_categories.action}.`))));
+  app.append(g);
+}
+
+/* ---------- filtros, tema y arranque ---------- */
+function segment(host, key, opts) {
+  host.replaceChildren(...opts.map(([val, label]) => {
+    const b = h("button", { type: "button", "aria-pressed": String(state[key] === val) }, label);
+    b.addEventListener("click", () => { state[key] = val; segment(host, key, opts); render(); });
+    return b;
+  }));
+}
+segment(document.getElementById("f-range"), "range", [["all", "Todo"], ["7d", "7 días"], ["3d", "3 días"], ["24h", "24 h"]]);
+segment(document.getElementById("f-source"), "source", [["all", "Todos"], ["cli", "cli"], ["simulation", "simulation"]]);
+document.getElementById("meta").replaceChildren(
+  DATA.sources_present.includes("simulation") ? h("span", { class: "badge" }, "SIMULACIÓN") : null,
+  `Datos de ${DATA.source_dir}/ · generado ${fdate(DATA.generated_at)} · ventana ${DATA.window} inferencias`);
+document.getElementById("theme").addEventListener("click", () => {
+  const cur = document.documentElement.getAttribute("data-theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  document.documentElement.setAttribute("data-theme", cur === "dark" ? "light" : "dark"); render();
+});
+render();
+</script>
+</body>
+</html>

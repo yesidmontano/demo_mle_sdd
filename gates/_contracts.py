@@ -49,3 +49,20 @@ def main_args(argv=None):
     p.add_argument("--change", required=True)
     p.add_argument("--model", default="conversion-sesion")
     return p.parse_args(argv)
+
+
+def load_specs(gate: str, capability: str | None = None) -> list[dict]:
+    """Contratos vinculantes de las main specs (`openspec/specs/`), para gates de changes ya archivados."""
+    out = []
+    pattern = f"{capability}/spec.md" if capability else "*/spec.md"
+    for spec in sorted(Path("openspec/specs").glob(pattern)):
+        for raw in BLOCK.findall(spec.read_text(encoding="utf-8")):
+            c = yaml.safe_load(raw)
+            if c.get("gate") == gate and not c.get("non_binding"):
+                out.append(c)
+    return out
+
+
+def load_any(change: str, gate: str) -> list[dict]:
+    """Contratos del change si sigue activo; si ya se archivó, los de las main specs vigentes."""
+    return load(change, gate) or load_specs(gate)

@@ -1,0 +1,26 @@
+{
+  "gate": "rollback-drill",
+  "status": "pass",
+  "metrics": [
+    {
+      "check": "alias_flip_changes_served_version",
+      "sequence": [
+        1,
+        2,
+        1
+      ],
+      "served": [
+        1,
+        2,
+        1
+      ],
+      "ok": true
+    },
+    {
+      "check": "no_failed_inference",
+      "failed": [],
+      "ok": true
+    }
+  ],
+  "detail": "0 de 2 comprobaciones fallan"
+}
