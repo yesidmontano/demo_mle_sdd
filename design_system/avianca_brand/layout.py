@@ -27,22 +27,37 @@ class FigureSizes:
 
 SIZES = FigureSizes()
 
-_TITLE_Y = 0.975
-_SUBTITLE_Y = 0.935
-_RULE_Y = 0.912
+# La cabecera se mide en PULGADAS, no en fracción de la figura: una fracción fija
+# ocupa lo mismo en una figura de 4,6 in que en una de 10 in, y en la baja se
+# come el área de los paneles y los títulos se pisan.
+_MARGIN_IN = 0.15      # aire sobre el título
+_TITLE_IN = 0.36       # alto de la línea de título
+_SUBTITLE_IN = 0.28    # alto de la línea de subtítulo
+_RULE_IN = 0.18        # regla roja + aire antes del contenido
 
 
-def _header(fig: plt.Figure, title: str, subtitle: str = "") -> None:
-    """Título, subtítulo y la regla roja que los separa del contenido."""
-    if title:
-        fig.text(0.02, _TITLE_Y, title, fontsize=TYPE_SCALE.figure_title + 4,
-                 fontweight="bold", color=TINTA.hex, ha="left", va="top")
+def _header(fig: plt.Figure, title: str, subtitle: str = "") -> float:
+    """
+    Título, subtítulo y la regla roja que los separa del contenido.
+
+    Devuelve el borde superior (0-1) que deben respetar los paneles, para pasarlo
+    a `tight_layout(rect=...)`.
+    """
+    if not title:
+        return 1.0
+    h = fig.get_figheight()
+    y = 1 - _MARGIN_IN / h
+    fig.text(0.02, y, title, fontsize=TYPE_SCALE.figure_title + 4,
+             fontweight="bold", color=TINTA.hex, ha="left", va="top")
+    y -= _TITLE_IN / h
     if subtitle:
-        fig.text(0.02, _SUBTITLE_Y, subtitle, fontsize=TYPE_SCALE.figure_subtitle,
+        fig.text(0.02, y, subtitle, fontsize=TYPE_SCALE.figure_subtitle,
                  color=GRIS_MEDIO.hex, ha="left", va="top")
-    if title:
-        fig.add_artist(plt.Line2D([0.02, 0.10], [_RULE_Y, _RULE_Y],
-                                  color=ROJO.hex, linewidth=3, transform=fig.transFigure))
+        y -= _SUBTITLE_IN / h
+    y -= 0.04 / h
+    fig.add_artist(plt.Line2D([0.02, 0.10], [y, y], color=ROJO.hex, linewidth=3,
+                              transform=fig.transFigure))
+    return y - _RULE_IN / h
 
 
 def create_dashboard(nrows: int, ncols: int, title: str = "", subtitle: str = "",
@@ -55,8 +70,10 @@ def create_dashboard(nrows: int, ncols: int, title: str = "", subtitle: str = ""
     (Figure, ndarray[Axes])
     """
     fig, axes = plt.subplots(nrows, ncols, figsize=figsize or SIZES.dashboard, **kwargs)
-    _header(fig, title, subtitle)
-    fig.tight_layout(rect=(0, 0.02, 1, 0.88 if title else 1.0))
+    top = _header(fig, title, subtitle)
+    # h_pad/w_pad generosos: sin ellos las etiquetas del eje x de una fila tocan
+    # el título del panel de la fila siguiente.
+    fig.tight_layout(rect=(0, 0.02, 1, top), h_pad=2.5, w_pad=2.0)
     return fig, axes
 
 
@@ -64,8 +81,8 @@ def create_report_figure(title: str = "", subtitle: str = "",
                          figsize: Optional[Tuple[float, float]] = None):
     """Figura de un solo panel con cabecera, para incrustar en un reporte."""
     fig, ax = plt.subplots(figsize=figsize or SIZES.single)
-    _header(fig, title, subtitle)
-    fig.tight_layout(rect=(0, 0.02, 1, 0.86 if title else 1.0))
+    top = _header(fig, title, subtitle)
+    fig.tight_layout(rect=(0, 0.02, 1, top))
     return fig, ax
 
 
@@ -79,7 +96,7 @@ def create_kpi_figure(kpis: Sequence[Tuple[str, str, Optional[str]]], title: str
     """
     fig, axes = plt.subplots(1, len(kpis), figsize=figsize or SIZES.kpi)
     axes = [axes] if len(kpis) == 1 else list(axes)
-    _header(fig, title, subtitle)
+    top = _header(fig, title, subtitle)
 
     for ax, (etiqueta, valor, delta) in zip(axes, kpis):
         ax.axis("off")
@@ -93,5 +110,5 @@ def create_kpi_figure(kpis: Sequence[Tuple[str, str, Optional[str]]], title: str
                     color=ROJO.hex if negativo else "#1EA93C", ha="center", va="center")
         for lado in ("left", "right"):
             ax.spines[lado].set_visible(False)
-    fig.tight_layout(rect=(0, 0.02, 1, 0.84 if title else 1.0))
+    fig.tight_layout(rect=(0, 0.02, 1, top))
     return fig, axes

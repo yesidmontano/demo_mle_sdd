@@ -1,0 +1,9 @@
+{
+  "gate": "human-review",
+  "status": "pass",
+  "subject": "results/01-business_understanding/problem.md",
+  "capability": "conversion-sesion-problem",
+  "approved_by": "Yesid Montaño",
+  "approved_at": "2026-09-18",
+  "detail": "Enunciado del problema aprobado por la persona responsable en la conversación."
+}

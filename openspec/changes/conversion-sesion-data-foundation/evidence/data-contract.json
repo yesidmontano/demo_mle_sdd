@@ -1,0 +1,79 @@
+{
+  "gate": "data-contract",
+  "status": "pass",
+  "metrics": [
+    {
+      "check": "null_count == 0",
+      "value": 0,
+      "ok": true
+    },
+    {
+      "check": "duplicate_rows == 0",
+      "value": 0,
+      "ok": true
+    },
+    {
+      "check": "row_count >= 40000",
+      "value": 49281,
+      "ok": true
+    },
+    {
+      "check": "booking_complete in [0, 1]",
+      "value": [],
+      "ok": true
+    },
+    {
+      "check": "num_passengers in [1, 9]",
+      "value": [
+        "1",
+        "9"
+      ],
+      "ok": true
+    },
+    {
+      "check": "flight_hour in [0, 23]",
+      "value": [
+        "0",
+        "23"
+      ],
+      "ok": true
+    },
+    {
+      "check": "flight_duration in [4, 10]",
+      "value": [
+        4.67,
+        9.5
+      ],
+      "ok": true
+    },
+    {
+      "check": "purchase_lead in [0, 900]",
+      "value": [
+        "0",
+        "867"
+      ],
+      "ok": true
+    },
+    {
+      "check": "sales_channel in ['Internet', 'Mobile']",
+      "value": [],
+      "ok": true
+    },
+    {
+      "check": "trip_type in ['RoundTrip', 'OneWay', 'CircleTrip']",
+      "value": [],
+      "ok": true
+    },
+    {
+      "check": "flight_day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']",
+      "value": [],
+      "ok": true
+    },
+    {
+      "check": "positive_rate between [0.12, 0.18]",
+      "value": 0.1499766644345691,
+      "ok": true
+    }
+  ],
+  "detail": "0 de 12 comprobaciones fallan"
+}

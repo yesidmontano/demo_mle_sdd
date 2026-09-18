@@ -95,3 +95,11 @@ brew install --cask font-red-hat-display font-red-hat-text
 `avianca_brand/assets/logo.svg` es la fuente de verdad. `add_logo()` necesita un PNG —Matplotlib
 no rasteriza SVG—, así que si solo existe el SVG la función no hace nada y **no falla**: una
 figura no se pierde por un asset.
+
+## Figuras multi-panel
+
+Para más de un panel usa `create_dashboard(nrows, ncols, title=..., subtitle=...)`, **no**
+`plt.subplots` + `fig.suptitle`: `suptitle` no reserva espacio y pisa los títulos de los paneles.
+La cabecera de `create_dashboard` se mide en pulgadas (no en fracción de la figura), así que
+funciona igual en figuras bajas y altas, y deja separación entre filas para que las etiquetas
+del eje x no toquen el título del panel siguiente. Los paneles llevan `ax.set_title(...)` propio.
