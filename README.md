@@ -31,8 +31,10 @@ La explicación completa del marco está en [`CLAUDE.md`](CLAUDE.md).
 ## Quick path
 
 ```bash
-# 1. Entorno
-python3.11 -m venv .venv && source .venv/bin/activate
+# 1. Entorno — Python 3.12. El .venv es local y no se versiona; créalo si no lo tienes:
+#    python3.12 -m venv .venv
+source .venv/bin/activate
+python --version                      # debe decir 3.12.x
 pip install -r requirements.txt
 pip install -e design_system          # sistema de marca Avianca
 

@@ -13,6 +13,9 @@ mlflow>=2.9.0
 # Visualización (el sistema de marca se instala aparte: pip install -e design_system)
 matplotlib>=3.7.0
 
+# Descarga del dataset
+kaggle>=1.6.0
+
 # Specs y calidad
 pyyaml>=6.0
 pytest>=7.4.0

@@ -195,7 +195,10 @@ with mlflow.start_run(run_name=f"{modelo}/{change_id}"):
 
 ### Convenciones de código
 
-- Python 3.11+. Dependencias con `uv` si está disponible, si no `pip` en un venv local.
+- **Python 3.12**, en el `.venv` de la raíz del repositorio. Actívalo antes de ejecutar nada:
+  `source .venv/bin/activate`. No crees entornos paralelos ni instales con el Python del sistema:
+  el entorno forma parte de lo que se sella, y un candidato entrenado fuera de él no es
+  reproducible.
 - Rutas relativas a la raíz del repositorio. Un script que solo funciona desde su propia carpeta
   no es reproducible.
 - Los gates viven en `gates/` y son ejecutables independientes: entran por CLI, salen con código 0
